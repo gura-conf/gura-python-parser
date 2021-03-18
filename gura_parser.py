@@ -1,7 +1,7 @@
 from parser import ParseError, Parser
 
 
-class JSONParser(Parser):
+class GuraParser(Parser):
     def eat_whitespace(self):
         is_processing_comment = False
 
@@ -19,9 +19,9 @@ class JSONParser(Parser):
             self.pos += 1
 
     def start(self):
-        return self.match('any_type')
+        return self.match('expression')
 
-    def any_type(self):
+    def expression(self):
         return self.match('complex_type', 'primitive_type')
 
     def primitive_type(self):
@@ -150,4 +150,4 @@ if __name__ == '__main__':
     try:
         pprint(parser.parse(sys.stdin.read()))
     except ParseError as e:
-        print('Error: ', str(e))
+        print('Error: '+ str(e))

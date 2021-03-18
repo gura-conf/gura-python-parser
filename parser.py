@@ -10,12 +10,7 @@ class ParseError(Exception):
     def __str__(self):
         return '%s at position %s' % (self.msg % self.args, self.pos)
 
-
 class Parser:
-    text: str
-    pos: int
-    len: int
-
     def __init__(self):
         self.cache = {}
 
@@ -35,13 +30,17 @@ class Parser:
                 self.text[self.pos + 1]
             )
 
-    def split_char_ranges(self, chars: str) -> List[str]:
+    def eat_whitespace(self):
+        while self.pos < self.len and self.text[self.pos + 1] in " \f\v\r\t\n":
+            self.pos += 1
+
+    def split_char_ranges(self, chars):
         try:
             return self.cache[chars]
         except KeyError:
             pass
 
-        rv: List[str] = []
+        rv = []
         index = 0
         length = len(chars)
 
@@ -59,7 +58,7 @@ class Parser:
         self.cache[chars] = rv
         return rv
 
-    def char(self, chars: Optional[str] = None):
+    def char(self, chars=None):
         if self.pos >= self.len:
             raise ParseError(
                 self.pos + 1,
@@ -68,7 +67,7 @@ class Parser:
             )
 
         next_char = self.text[self.pos + 1]
-        if chars is None:
+        if chars == None:
             self.pos += 1
             return next_char
 
@@ -115,14 +114,13 @@ class Parser:
 
     def match(self, *rules):
         self.eat_whitespace()
-        last_error_pos: int = -1
-        last_exception: Optional[Exception] = None
-        last_error_rules: List[str] = []
+        last_error_pos = -1
+        last_exception = None
+        last_error_rules = []
 
         for rule in rules:
             initial_pos = self.pos
             try:
-                # Get the rule, for example 'number' and call its method
                 rv = getattr(self, rule)()
                 self.eat_whitespace()
                 return rv
@@ -147,23 +145,19 @@ class Parser:
                 self.text[last_error_pos]
             )
 
-    def eat_whitespace(self):
-        while self.pos < self.len and self.text[self.pos + 1] in " \f\v\r\t\n":
-            self.pos += 1
-
-    def maybe_char(self, chars: Optional[str] = None) -> Optional[str]:
+    def maybe_char(self, chars=None):
         try:
             return self.char(chars)
         except ParseError:
             return None
 
-    def maybe_match(self, *rules) -> Optional[Any]:
+    def maybe_match(self, *rules):
         try:
             return self.match(*rules)
         except ParseError:
             return None
 
-    def maybe_keyword(self, *keywords) -> Optional[Any]:
+    def maybe_keyword(self, *keywords):
         try:
             return self.keyword(*keywords)
         except ParseError:

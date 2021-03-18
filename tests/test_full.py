@@ -1,6 +1,6 @@
 import unittest
 from typing import Dict
-from gura import Gura
+from parser import Gura
 import math
 import os
 
