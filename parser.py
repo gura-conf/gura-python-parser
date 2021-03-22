@@ -1,25 +1,34 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict
 
 
 class ParseError(Exception):
-    def __init__(self, pos: Optional[int], msg: str, *args):
+    def __init__(self, pos: int, line: int, msg: str, *args):
         self.pos = pos
+        self.line = line
         self.msg = msg
         self.args = args
 
     def __str__(self):
-        return '%s at position %s' % (self.msg % self.args, self.pos)
+        return '%s at line %s position %s' % (self.msg % self.args, self.line, self.pos)
 
 
 class Parser:
+    text: str
+    pos: int
+    line: int
+    len: int
+
     def __init__(self):
         self.cache = {}
 
     def parse(self, text):
         self.text = text
         self.pos = -1
+        self.line = 0
         self.len = len(text) - 1
+
         rv = self.start()
+
         self.assert_end()
         return rv
 
@@ -27,13 +36,17 @@ class Parser:
         if self.pos < self.len:
             raise ParseError(
                 self.pos + 1,
+                self.line,
                 'Expected end of string but got %s',
                 self.text[self.pos + 1]
             )
 
-    def eat_whitespace(self):
-        while self.pos < self.len and self.text[self.pos + 1] in " \f\v\r\t\n":
+    def eat_whitespace(self, check_indentation: bool):
+        char = self.text[self.pos + 1]
+        while self.pos < self.len and char in " \f\v\r\t\n":
             self.pos += 1
+            if char == '\n':
+                self.line += 1
 
     def split_char_ranges(self, chars):
         try:
@@ -63,12 +76,13 @@ class Parser:
         if self.pos >= self.len:
             raise ParseError(
                 self.pos + 1,
+                self.line,
                 'Expected %s but got end of string',
                 'character' if chars is None else '[%s]' % chars
             )
 
         next_char = self.text[self.pos + 1]
-        if chars == None:
+        if chars is None:
             self.pos += 1
             return next_char
 
@@ -83,16 +97,18 @@ class Parser:
 
         raise ParseError(
             self.pos + 1,
+            self.line,
             'Expected %s but got %s',
             'character' if chars is None else '[%s]' % chars,
             next_char
         )
 
     def keyword(self, *keywords):
-        self.eat_whitespace()
+        self.eat_whitespace(check_indentation=True)
         if self.pos >= self.len:
             raise ParseError(
                 self.pos + 1,
+                self.line,
                 'Expected %s but got end of string',
                 ','.join(keywords)
             )
@@ -103,18 +119,19 @@ class Parser:
 
             if self.text[low:high] == keyword:
                 self.pos += len(keyword)
-                self.eat_whitespace()
+                self.eat_whitespace(check_indentation=True)
                 return keyword
 
         raise ParseError(
             self.pos + 1,
+            self.line,
             'Expected %s but got %s',
             ','.join(keywords),
             self.text[self.pos + 1],
         )
 
     def match(self, *rules):
-        self.eat_whitespace()
+        self.eat_whitespace(check_indentation=True)
         last_error_pos = -1
         last_exception = None
         last_error_rules = []
@@ -123,7 +140,7 @@ class Parser:
             initial_pos = self.pos
             try:
                 rv = getattr(self, rule)()
-                self.eat_whitespace()
+                self.eat_whitespace(check_indentation=True)
                 return rv
             except ParseError as e:
                 self.pos = initial_pos
@@ -141,6 +158,7 @@ class Parser:
         else:
             raise ParseError(
                 last_error_pos,
+                self.line,
                 'Expected %s but got %s',
                 ','.join(last_error_rules),
                 self.text[last_error_pos]

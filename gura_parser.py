@@ -1,17 +1,27 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, Optional, List
 from parser import ParseError, Parser
 
 
 class GuraParser(Parser):
     variables: Dict[str, Any]
+    indent_char: Optional[str]
+    indentation_levels: List[int]
 
     def __init__(self):
         super(GuraParser, self).__init__()
         self.variables = {}
+        self.indent_char = None
+        self.indentation_levels = []
 
-    def eat_whitespace(self):
-        """Removes white spaces and comments which start with '#'"""
+    def eat_whitespace(self, check_indentation: bool):
+        """
+        Removes white spaces and comments which start with '#'
+        TODO: complete
+        :param check_indentation:
+        :return:
+        """
         is_processing_comment = False
+        current_indentation_level = 0
 
         while self.pos < self.len:
             char = self.text[self.pos + 1]
@@ -22,9 +32,59 @@ class GuraParser(Parser):
                 if char == '#':
                     is_processing_comment = True
                 elif char not in ' \f\v\r\t\n':
+                    # If it is not a blank or new line, returns from the method
                     break
+                elif char in ' \t':
+                    # If it is the first case of indentation stores the indentation char
+                    if self.indent_char is not None:
+                        # If user uses different kind of indentation raises a parsing error
+                        if char != self.indent_char:
+                            self.__raise_indentation_char_error()
+                    else:
+                        # From now on this character will be used to indicate the indentation
+                        self.indent_char = char
+                    current_indentation_level += 1
+
+            # Updates line number and indentation level
+            if char == '\n':
+                current_indentation_level = 0  # A new line resets indentation level
+                self.line += 1
+
+            # Updates list of indentation blocks
+            if check_indentation:
+                last_indentation_block = None if len(self.indentation_levels) == 0 else self.indentation_levels[-1]
+                if last_indentation_block is None or current_indentation_level > last_indentation_block:
+                    print('Adding indentation -> ', current_indentation_level)
+                    self.indentation_levels.append(current_indentation_level)
+                else:
+                    # Removes closed indentation blocks
+                    i = len(self.indentation_levels) - 1
+                    while i >= 0:
+                        indentation_level = self.indentation_levels[i]
+                        i -= 1
+                        if current_indentation_level < indentation_level:
+                            self.indentation_levels.pop()
+                        break
 
             self.pos += 1
+
+    def __raise_indentation_char_error(self):
+        """
+        Raises a ParseError indicating that the indentation chars are inconsistent
+        :raise: ParseError
+        """
+        if self.indent_char == '\t':
+            good_char = 'tabs'
+            received_char = 'whitespace'
+        else:
+            good_char = 'whitespace'
+            received_char = 'tabs'
+        raise ParseError(
+            self.pos + 1,
+            self.line,
+            f'Wrong indentation character! Using {good_char} but received {received_char}',
+            self.text[self.pos + 1]
+        )
 
     def start(self):
         return self.match('map')
@@ -58,6 +118,7 @@ class GuraParser(Parser):
         if error_message is not None:
             raise ParseError(
                 self.pos + 1,
+                self.line,
                 error_message,
                 self.text[self.pos + 1]
             )
@@ -85,32 +146,46 @@ class GuraParser(Parser):
 
     def map(self):
         rv = {}
-
+        # keys_queue: List[str] = []
         while True:
             item = self.maybe_match('pair')
             if item is None:
                 break
 
-            key, value = item
-            if key in rv:
-                raise ParseError(
-                    self.pos + 1,
-                    f'The key \'{key}\' has been already defined',
-                )
-            rv[key] = value
-
+            print('item', item)
+            if len(item) == 2:
+                # It is a key/value pair
+                key, value = item
+                if key in rv:
+                    raise ParseError(
+                        self.pos + 1,
+                        self.line,
+                        f'The key \'{key}\' has been already defined',
+                    )
+                rv[key] = value
+            else:
+                print(f'Es una clave ({item})')
+                # It is an indented object key
+                # self
+                pass
         return rv
 
-    def pair(self):
+    def key(self):
         key = self.match('unquoted_string')
+        print('key obtenida ->', key)
         if type(key) is not str:
             raise ParseError(
                 self.pos + 1,
+                self.line,
                 'Expected string but got number',
                 self.text[self.pos + 1]
             )
 
         self.keyword(':')
+        return key
+
+    def pair(self):
+        key = self.match('key')
         value = self.match('any_type')
 
         return key, value
@@ -215,5 +290,6 @@ if __name__ == '__main__':
         # pprint(parser.parse(sys.stdin.read()))
         with open('tests/prueba.gura', 'r') as file:
             pprint(parser.parse(file.read()))
+            print(parser.indentation_levels)
     except ParseError as e:
         print('Error: ', str(e))
