@@ -121,8 +121,8 @@ class GuraParser(Parser):
             #
             # self.pos += 1
 
-    def eat_ws_and_new_line(self):
-        while self.maybe_char(' \f\v\r\n\t') is not None:
+    def eat_ws_and_new_lines(self):
+        while self.maybe_char(' \f\v\r\n\t'):
             pass
 
     def __raise_indentation_char_error(self):
@@ -144,8 +144,9 @@ class GuraParser(Parser):
         )
 
     def start(self):
+        self.eat_ws_and_new_lines()  # TODO: try removing if pair wrong matching for empty lines is fixed
         rv = self.match('map')
-        self.eat_ws_and_new_line()
+        self.eat_ws_and_new_lines()
         return rv
 
     # def expression(self):
@@ -206,6 +207,7 @@ class GuraParser(Parser):
     def useless_line(self):
         self.match('ws')
         self.maybe_match('comment')
+        self.maybe_match('new_line')
         return MatchResult(MatchResultType.USELESS_LINE)
 
     def map(self):
