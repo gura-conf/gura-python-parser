@@ -41,13 +41,6 @@ class Parser:
                 self.text[self.pos + 1]
             )
 
-    def eat_whitespace(self, check_indentation: bool):
-        char = self.text[self.pos + 1]
-        while self.pos < self.len and char in " \f\v\r\t\n":
-            self.pos += 1
-            if char == '\n':
-                self.line += 1
-
     def split_char_ranges(self, chars):
         try:
             return self.cache[chars]
@@ -103,8 +96,7 @@ class Parser:
             next_char
         )
 
-    def keyword(self, *keywords, eat_after: bool = True):
-        # self.eat_whitespace(check_indentation=True)
+    def keyword(self, *keywords):
         if self.pos >= self.len:
             raise ParseError(
                 self.pos + 1,
@@ -117,13 +109,8 @@ class Parser:
             low = self.pos + 1
             high = low + len(keyword)
 
-            print(f'Low -> {low} | high -> {high} | self.text[low:high] -> {self.text[low:high]} | keyword -> {keyword} | Match -> {self.text[low:high] == keyword} ')
             if self.text[low:high] == keyword:
                 self.pos += len(keyword)
-                # Does not need to check indentation as it could consider separators between ':' and a value as
-                # indentation levels
-                # if eat_after:
-                #     self.eat_whitespace(check_indentation=False)
                 return keyword
 
         raise ParseError(
@@ -134,9 +121,7 @@ class Parser:
             self.text[self.pos + 1],
         )
 
-    def match(self, *rules, eat_whitespace: bool = True, check_indentation_after = True):
-        # if eat_whitespace:
-        #     self.eat_whitespace(check_indentation=True)
+    def match(self, *rules):
         last_error_pos = -1
         last_exception = None
         last_error_rules = []
@@ -144,14 +129,9 @@ class Parser:
         for rule in rules:
             initial_pos = self.pos
             try:
-                print(f'Probando {rule}')
                 rv = getattr(self, rule)()
-                # if eat_whitespace:
-                #     self.eat_whitespace(check_indentation=False)
-                print(f'{rule} exitosa!')
                 return rv
             except ParseError as e:
-                print(f'{rule} no matchea')
                 self.pos = initial_pos
 
                 if e.pos > last_error_pos:
@@ -173,49 +153,15 @@ class Parser:
                 self.text[last_error_pos]
             )
 
-    # def match_with_only_spaces_before(self, *rules):
-    #     self.eat_whitespace_only()
-    #     last_error_pos = -1
-    #     last_exception = None
-    #     last_error_rules = []
-    #
-    #     for rule in rules:
-    #         initial_pos = self.pos
-    #         try:
-    #             rv = getattr(self, rule)()
-    #             self.eat_whitespace_only()
-    #             return rv
-    #         except ParseError as e:
-    #             self.pos = initial_pos
-    #
-    #             if e.pos > last_error_pos:
-    #                 last_exception = e
-    #                 last_error_pos = e.pos
-    #                 last_error_rules.clear()
-    #                 last_error_rules.append(rule)
-    #             elif e.pos == last_error_pos:
-    #                 last_error_rules.append(rule)
-    #
-    #     if len(last_error_rules) == 1:
-    #         raise last_exception
-    #     else:
-    #         raise ParseError(
-    #             last_error_pos,
-    #             self.line,
-    #             'Expected %s but got %s',
-    #             ','.join(last_error_rules),
-    #             self.text[last_error_pos]
-    #         )
-
     def maybe_char(self, chars=None):
         try:
             return self.char(chars)
         except ParseError:
             return None
 
-    def maybe_match(self, *rules, eat_whitespace: bool = True):
+    def maybe_match(self, *rules):
         try:
-            return self.match(*rules, eat_whitespace=eat_whitespace)
+            return self.match(*rules)
         except ParseError:
             return None
 
