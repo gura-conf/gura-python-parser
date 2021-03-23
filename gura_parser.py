@@ -144,7 +144,6 @@ class GuraParser(Parser):
         )
 
     def start(self):
-        self.eat_ws_and_new_lines()  # TODO: try removing if pair wrong matching for empty lines is fixed
         rv = self.match('map')
         self.eat_ws_and_new_lines()
         return rv
