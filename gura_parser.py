@@ -1,5 +1,23 @@
 from typing import Dict, Any, Union, Optional, List
 from parser import ParseError, Parser
+from enum import Enum, auto
+
+
+class MatchResultType(Enum):
+    USELESS_LINE = auto(),
+    PAIR = auto()
+
+
+class MatchResult:
+    result_type: MatchResultType
+    value: Optional[Any]
+
+    def __init__(self, result_type: MatchResultType, value: Optional[Any] = None):
+        self.result_type = result_type
+        self.value = value
+
+    def __str__(self):
+        return f'{self.result_type} -> {self.value}'
 
 
 class GuraParser(Parser):
@@ -13,45 +31,59 @@ class GuraParser(Parser):
         self.indent_char = None
         self.indentation_levels = []
 
-    def eat_whitespace(self, check_indentation: bool):
+    def new_line(self):
+        res = self.char('\f\v\r\n')
+        if res is not None:
+            self.line += 1
+
+    def comment(self):
+        key = self.keyword('#')
+        print('Comment key', key)
+        while self.pos < self.len:
+            # char = self.maybe_char('\f\v\r\n')
+            char = self.text[self.pos + 1]
+            self.pos += 1
+            if char in '\f\v\r\n':
+                self.line += 1
+                break
+
+            print(f'comment char -> {char}')
+            # if char is None:
+            #     pass
+        # exit()
+
+    def ws_with_indentation(self):
         """
         Removes white spaces and comments which start with '#'
         TODO: complete
         :param check_indentation:
         :return:
         """
-        is_processing_comment = False
         current_indentation_level = 0
 
         while self.pos < self.len:
-            char = self.text[self.pos + 1]
-            if is_processing_comment:
-                if char == '\n':
-                    is_processing_comment = False
+            blank = self.maybe_keyword(' ', '\t')
+            if blank is None:
+                # If it is not a blank or new line, returns from the method
+                break
+
+            # If it is the first case of indentation stores the indentation char
+            if self.indent_char is not None:
+                # If user uses different kind of indentation raises a parsing error
+                if blank != self.indent_char:
+                    self.__raise_indentation_char_error()
             else:
-                if char == '#':
-                    is_processing_comment = True
-                elif char not in ' \f\v\r\t\n':
-                    # If it is not a blank or new line, returns from the method
-                    break
-                elif char in ' \t':
-                    # If it is the first case of indentation stores the indentation char
-                    if self.indent_char is not None:
-                        # If user uses different kind of indentation raises a parsing error
-                        if char != self.indent_char:
-                            self.__raise_indentation_char_error()
-                    else:
-                        # From now on this character will be used to indicate the indentation
-                        self.indent_char = char
-                    current_indentation_level += 1
+                # From now on this character will be used to indicate the indentation
+                self.indent_char = blank
+            current_indentation_level += 1
 
             # Updates line number and indentation level
-            if char == '\n':
-                current_indentation_level = 0  # A new line resets indentation level
-                self.line += 1
+            # if char == '\n':
+            #     current_indentation_level = 0  # A new line resets indentation level
+            #     self.line += 1
 
             # Updates list of indentation blocks
-            if check_indentation:
+            if current_indentation_level:
                 last_indentation_block = None if len(self.indentation_levels) == 0 else self.indentation_levels[-1]
                 if last_indentation_block is None or current_indentation_level > last_indentation_block:
                     print('Adding indentation -> ', current_indentation_level)
@@ -63,10 +95,35 @@ class GuraParser(Parser):
                         indentation_level = self.indentation_levels[i]
                         i -= 1
                         if current_indentation_level < indentation_level:
+                            print(f'Removing {indentation_level} indentation level')
                             self.indentation_levels.pop()
                         break
 
-            self.pos += 1
+            # self.pos += 1
+
+    def ws(self):
+        """
+        Removes white spaces and comments which start with '#'
+        :return:
+        """
+        while True:
+            blank = self.maybe_keyword(' ', '\t')
+            if blank is None:
+                break
+            # char = self.text[self.pos + 1]
+            # print(f"Obtenido '{char}'")
+            # if char not in ' \t':
+            #     break
+            #
+            # # Updates line number
+            # if char == '\n':
+            #     self.line += 1
+            #
+            # self.pos += 1
+
+    def eat_ws_and_new_line(self):
+        while self.maybe_char(' \f\v\r\n\t') is not None:
+            pass
 
     def __raise_indentation_char_error(self):
         """
@@ -87,7 +144,9 @@ class GuraParser(Parser):
         )
 
     def start(self):
-        return self.match('map')
+        rv = self.match('map')
+        self.eat_ws_and_new_line()
+        return rv
 
     # def expression(self):
         # return self.match('variable', 'complex_type', 'primitive_type')
@@ -105,27 +164,27 @@ class GuraParser(Parser):
         # return self.match('map')
         return self.match('list', 'map')
 
-    def variable(self):
-        """TODO: use"""
-        error_message = None
-
-        self.keyword('$')
-        key, value = self.match('pair')
-
-        if key in self.variables:
-            error_message = f'Variable \'{key}\' has been already declared'
-
-        if error_message is not None:
-            raise ParseError(
-                self.pos + 1,
-                self.line,
-                error_message,
-                self.text[self.pos + 1]
-            )
-
-        # Store as variable
-        self.variables[key] = value
-        return None
+    # def variable(self):
+    #     """TODO: use"""
+    #     error_message = None
+    #
+    #     self.keyword('$')
+    #     key, value = self.match('pair')
+    #
+    #     if key in self.variables:
+    #         error_message = f'Variable \'{key}\' has been already declared'
+    #
+    #     if error_message is not None:
+    #         raise ParseError(
+    #             self.pos + 1,
+    #             self.line,
+    #             error_message,
+    #             self.text[self.pos + 1]
+    #         )
+    #
+    #     # Store as variable
+    #     self.variables[key] = value
+    #     return None
 
     def list(self):
         rv = []
@@ -144,18 +203,23 @@ class GuraParser(Parser):
         self.keyword(']')
         return rv
 
+    def useless_line(self):
+        self.match('ws')
+        self.maybe_match('comment')
+        return MatchResult(MatchResultType.USELESS_LINE)
+
     def map(self):
         rv = {}
-        # keys_queue: List[str] = []
+        i = 0
         while True:
-            item = self.maybe_match('pair')
-            if item is None:
+            item: MatchResult = self.maybe_match('pair', 'useless_line', 'key')
+            if item is None or i == 20:
                 break
 
             print('item', item)
-            if len(item) == 2:
+            if item.result_type == MatchResultType.PAIR:
                 # It is a key/value pair
-                key, value = item
+                key, value = item.value
                 if key in rv:
                     raise ParseError(
                         self.pos + 1,
@@ -163,11 +227,11 @@ class GuraParser(Parser):
                         f'The key \'{key}\' has been already defined',
                     )
                 rv[key] = value
-            else:
-                print(f'Es una clave ({item})')
-                # It is an indented object key
-                # self
-                pass
+                # exit()
+            elif item.result_type == MatchResultType.USELESS_LINE:
+                print(f'Es una linea inutil')
+
+            i += 1
         return rv
 
     def key(self):
@@ -181,14 +245,17 @@ class GuraParser(Parser):
                 self.text[self.pos + 1]
             )
 
-        self.keyword(':')
+        self.keyword(':', eat_after=False)
         return key
 
     def pair(self):
+        self.maybe_match('ws_with_indentation')
         key = self.match('key')
+        self.maybe_match('ws')
         value = self.match('any_type')
+        self.maybe_match('new_line')
 
-        return key, value
+        return MatchResult(MatchResultType.PAIR, (key, value))
 
     def null(self) -> None:
         """
@@ -288,7 +355,7 @@ if __name__ == '__main__':
 
     try:
         # pprint(parser.parse(sys.stdin.read()))
-        with open('tests/prueba.gura', 'r') as file:
+        with open('tests/prueba.ura', 'r') as file:
             pprint(parser.parse(file.read()))
             print(parser.indentation_levels)
     except ParseError as e:
