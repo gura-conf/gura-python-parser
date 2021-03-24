@@ -6,7 +6,6 @@ from enum import Enum, auto
 class MatchResultType(Enum):
     USELESS_LINE = auto(),
     PAIR = auto()
-    OBJECT_KEY = auto()
 
 
 class MatchResult:
@@ -21,20 +20,10 @@ class MatchResult:
         return f'{self.result_type} -> {self.value}'
 
 
-class IndentationLevel:
-    level: int
-
-    def __init__(self, level: int):
-        self.level = level
-
-    def __str__(self):
-        return f'Indentation with {self.level} blanks'
-
-
 class GuraParser(Parser):
     variables: Dict[str, Any]
     indent_char: Optional[str]
-    indentation_levels: List[IndentationLevel]
+    indentation_levels: List[int]
 
     def __init__(self):
         super(GuraParser, self).__init__()
@@ -48,14 +37,15 @@ class GuraParser(Parser):
             self.line += 1
 
     def comment(self):
-        key = self.keyword('#')
-        print('Comment key', key)
+        self.keyword('#')
         while self.pos < self.len:
             char = self.text[self.pos + 1]
+            # char = self.text[self.pos]
             self.pos += 1
             if char in '\f\v\r\n':
                 self.line += 1
                 break
+        print(f'Puntero en -> {self.text[self.pos]} (pos -> {self.pos})')
 
     def ws_with_indentation(self):
         """
@@ -64,7 +54,7 @@ class GuraParser(Parser):
         :param check_indentation:
         :return:
         """
-        current_indentation_level = IndentationLevel(0)
+        current_indentation_level = 0
 
         while self.pos < self.len:
             blank = self.maybe_keyword(' ', '\t')
@@ -80,9 +70,10 @@ class GuraParser(Parser):
             else:
                 # From now on this character will be used to indicate the indentation
                 self.indent_char = blank
-            current_indentation_level.level += 1
+            current_indentation_level += 1
 
         # TODO: add ParseError in case indentation is not divisible by 2
+        print(f'devolviendo -> {current_indentation_level}')
         return current_indentation_level
 
     def ws(self):
@@ -90,6 +81,7 @@ class GuraParser(Parser):
         Removes white spaces and comments which start with '#'
         :return:
         """
+        # TODO: refactor
         while True:
             blank = self.maybe_keyword(' ', '\t')
             if blank is None:
@@ -121,11 +113,6 @@ class GuraParser(Parser):
         rv = self.match('map')
         self.eat_ws_and_new_lines()
         return rv
-
-    # def expression(self):
-        # return self.match('variable', 'complex_type', 'primitive_type')
-        # return self.match('complex_type', 'primitive_type')
-        # return self.match('complex_type')
 
     def any_type(self):
         return self.match('primitive_type', 'complex_type')
@@ -186,19 +173,24 @@ class GuraParser(Parser):
     def map(self):
         rv = {}
         while self.pos < self.len:
-            current_indentation_level: IndentationLevel = self.maybe_match('ws_with_indentation')
+            # self.maybe_match('useless_line')
+            current_indentation_level = self.maybe_match('ws_with_indentation')
 
             # Check indentation
-            last_indentation_block: Optional[IndentationLevel] = None if len(self.indentation_levels) == 0 \
+            last_indentation_block: Optional[int] = None if len(self.indentation_levels) == 0 \
                 else self.indentation_levels[-1]
-            if last_indentation_block is None or current_indentation_level.level > last_indentation_block.level:
+            print('current_indentation_level', current_indentation_level)
+            print('last_indentation_block', last_indentation_block)
+            if last_indentation_block is None or current_indentation_level > last_indentation_block:
+                print(f'Agregando {current_indentation_level}')
                 self.indentation_levels.append(current_indentation_level)
-            elif current_indentation_level.level < last_indentation_block.level:
+            elif current_indentation_level < last_indentation_block:
+                print(f'Eliminando {last_indentation_block}')
                 self.indentation_levels.pop()
 
                 # As the indentation was consumed, it is needed to return to line beginning to get the indentation level
                 # again in the previous matching. Otherwise, the other match would get indentation level = 0
-                self.pos -= current_indentation_level.level
+                self.pos -= current_indentation_level
                 break
 
             item: MatchResult = self.maybe_match('pair', 'useless_line')
@@ -208,6 +200,7 @@ class GuraParser(Parser):
             if item.result_type == MatchResultType.PAIR:
                 # It is a key/value pair
                 key, value = item.value
+                print(f"Pair obtenido '{item.value}'")
                 if key in rv:
                     raise ParseError(
                         self.pos + 1,
@@ -220,6 +213,7 @@ class GuraParser(Parser):
 
     def key(self):
         key = self.match('unquoted_string')
+        print(f"Key encontrada -> '{key}'")
         if type(key) is not str:
             raise ParseError(
                 self.pos + 1,
