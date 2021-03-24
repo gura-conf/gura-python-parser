@@ -1,13 +1,13 @@
 import unittest
 from typing import Dict
-from parser import Gura
+from gura_parser import GuraParser
 import math
 import os
 
 
 class TestFullGura(unittest.TestCase):
     content: str
-    parser: Gura
+    parser: GuraParser
     parsed_data: Dict
 
     def setUp(self):
@@ -15,8 +15,8 @@ class TestFullGura(unittest.TestCase):
         full_test_path = os.path.join(file_dir, 'tests-files/full.ura')
         with open(full_test_path, 'r') as file:
             self.content = file.read()
-        self.parser = Gura()
-        self.parsed_data = self.parser.loads(self.content)
+        self.parser = GuraParser()
+        self.parsed_data = self.parser.parse(self.content)
 
     def test_loads(self):
         target_dir = {
@@ -94,7 +94,7 @@ class TestFullGura(unittest.TestCase):
             },
             "gura_is_cool": "Gura is cool"
         }
-        # self.assertDictEqual(self.parsed_data, target_dir)
+        self.assertDictEqual(self.parsed_data, target_dir)
 
     def test_dumps(self):
         # string_data = self.parser.dumps(self.content)
