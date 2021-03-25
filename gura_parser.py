@@ -173,26 +173,6 @@ class GuraParser(Parser):
     def map(self):
         rv = {}
         while self.pos < self.len:
-            # self.maybe_match('useless_line')
-            current_indentation_level = self.maybe_match('ws_with_indentation')
-
-            # Check indentation
-            last_indentation_block: Optional[int] = None if len(self.indentation_levels) == 0 \
-                else self.indentation_levels[-1]
-            print('current_indentation_level', current_indentation_level)
-            print('last_indentation_block', last_indentation_block)
-            if last_indentation_block is None or current_indentation_level > last_indentation_block:
-                print(f'Agregando {current_indentation_level}')
-                self.indentation_levels.append(current_indentation_level)
-            elif current_indentation_level < last_indentation_block:
-                print(f'Eliminando {last_indentation_block}')
-                self.indentation_levels.pop()
-
-                # As the indentation was consumed, it is needed to return to line beginning to get the indentation level
-                # again in the previous matching. Otherwise, the other match would get indentation level = 0
-                self.pos -= current_indentation_level
-                break
-
             item: MatchResult = self.maybe_match('pair', 'useless_line')
             if item is None:
                 break
@@ -226,10 +206,32 @@ class GuraParser(Parser):
         return key
 
     def pair(self):
+        pos_before_pair = self.pos
+        current_indentation_level = self.maybe_match('ws_with_indentation')
+
         key = self.match('key')
         self.maybe_match('ws')
         self.maybe_match('new_line')
+
+        # Check indentation
+        last_indentation_block: Optional[int] = None if len(self.indentation_levels) == 0 \
+            else self.indentation_levels[-1]
+        print('current_indentation_level', current_indentation_level)
+        print('last_indentation_block', last_indentation_block)
+        if last_indentation_block is None or current_indentation_level > last_indentation_block:
+            print(f'Agregando {current_indentation_level}')
+            self.indentation_levels.append(current_indentation_level)
+        elif current_indentation_level < last_indentation_block:
+            print(f'Eliminando {last_indentation_block}')
+            self.indentation_levels.pop()
+
+            # As the indentation was consumed, it is needed to return to line beginning to get the indentation level
+            # again in the previous matching. Otherwise, the other match would get indentation level = 0
+            self.pos = pos_before_pair
+            return None  # This breaks the parent loop
+
         value = self.match('any_type')
+        print(f"Value encontrado -> '{value}'")
         self.maybe_match('new_line')
 
         return MatchResult(MatchResultType.PAIR, (key, value))
