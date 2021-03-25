@@ -115,10 +115,19 @@ class GuraParser(Parser):
         return rv
 
     def any_type(self):
-        return self.match('primitive_type', 'complex_type')
+        rv = self.maybe_match('primitive_type')
+        if rv is not None:
+            return rv
+
+        # Checks if user defined an unquoted value
+        unquoted = self.maybe_match('unquoted_string')
+        if unquoted:
+            raise ValueError(f'String value \'{unquoted}\' is not valid as unquoted strings are not allowed')
+
+        return self.match('complex_type')
 
     def primitive_type(self):
-        return self.match('null', 'boolean', 'quoted_string', 'string_or_number')
+        return self.match('null', 'boolean', 'quoted_string', 'number')
 
     def complex_type(self):
         # return self.match('variable', 'list', 'map')
@@ -256,7 +265,7 @@ class GuraParser(Parser):
         Parses an unquoted string. Useful for keys
         :return: Parsed unquoted string
         """
-        acceptable_chars = '0-9A-Za-z \t!$%&()*+./;<=>?^_`|~-'
+        acceptable_chars = '0-9A-Za-z!$%&()*+./;<=>?^_`|~-'
 
         chars = [self.char(acceptable_chars)]
 
@@ -267,16 +276,19 @@ class GuraParser(Parser):
 
             chars.append(char)
 
+        print("Retornando desde unquoted_string '" + ''.join(chars).rstrip(' \t') + "'")
         return ''.join(chars).rstrip(' \t')
 
-    def string_or_number(self) -> Union[float, int, str]:
+    def number(self) -> Union[float, int, str]:
         """
         Parses a string checking if it is a number.
         :return: Returns an int, a float or a string depending of type inference
         """
-        acceptable_chars = '0-9A-Za-z!$%&()*+./;<=>?^_`|~-'
+        # IMPORTANT: '-' char must be last, otherwise it will be interpreted as a range
+        acceptable_chars = '0-9Ee+._-'
         number_type = int
 
+        print('number current char -> ', self.text[self.pos])
         chars = [self.char(acceptable_chars)]
 
         while True:
@@ -291,9 +303,14 @@ class GuraParser(Parser):
 
         rv = ''.join(chars).rstrip(' \t')
         try:
+            print(f'RV en number -> {rv}')
             return number_type(rv)
         except ValueError:
-            return rv
+            raise ParseError(
+                self.pos + 1,
+                self.line,
+                f'\'{rv}\' is not a valid number',
+            )
 
     def quoted_string(self):
         quote = self.char('"\'')
