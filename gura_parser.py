@@ -2,6 +2,13 @@ from typing import Dict, Any, Union, Optional, List
 from parser import ParseError, Parser
 from enum import Enum, auto
 
+# Number chars
+BASIC_NUMBERS_CHARS = '0-9'
+HEX_OCT_BIN = 'A-Fa-fxob'
+INF_AND_NAN = 'in'  # The rest of the chars are defined in hex_oct_bin
+# IMPORTANT: '-' char must be last, otherwise it will be interpreted as a range
+ACCEPTABLE_NUMBER_CHARS = BASIC_NUMBERS_CHARS + HEX_OCT_BIN + INF_AND_NAN + 'Ee+._-'
+
 
 class MatchResultType(Enum):
     USELESS_LINE = auto(),
@@ -284,15 +291,13 @@ class GuraParser(Parser):
         Parses a string checking if it is a number.
         :return: Returns an int, a float or a string depending of type inference
         """
-        # IMPORTANT: '-' char must be last, otherwise it will be interpreted as a range
-        acceptable_chars = '0-9Ee+._-'
         number_type = int
 
         print('number current char -> ', self.text[self.pos])
-        chars = [self.char(acceptable_chars)]
+        chars = [self.char(ACCEPTABLE_NUMBER_CHARS)]
 
         while True:
-            char = self.maybe_char(acceptable_chars)
+            char = self.maybe_char(ACCEPTABLE_NUMBER_CHARS)
             if char is None:
                 break
 
@@ -302,6 +307,24 @@ class GuraParser(Parser):
             chars.append(char)
 
         rv = ''.join(chars).rstrip(' \t')
+
+        # Checks hexadecimal and octal format
+        prefix = rv[:2]
+        if prefix in ['0x', '0o', '0b']:
+            without_prefix = rv[2:]
+            if prefix == '0x':
+                base = 16
+            elif prefix == '0o':
+                base = 8
+            else:
+                base = 2
+            return int(without_prefix, base)
+
+        # Checks inf or NaN
+        last_three_chars = rv[-3:]
+        if last_three_chars in ['inf', 'nan']:
+            return float(rv)
+
         try:
             print(f'RV en number -> {rv}')
             return number_type(rv)
