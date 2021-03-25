@@ -4,7 +4,7 @@ from gura_parser import GuraParser
 import os
 
 
-class TestFullGura(unittest.TestCase):
+class TestUselessLinesGura(unittest.TestCase):
     file_dir: str
     parser: GuraParser
     expected: Dict
