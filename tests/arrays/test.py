@@ -65,10 +65,8 @@ class TestArraysGura(unittest.TestCase):
 
     def test_with_comments(self):
         """Tests all kind of arrays with comments between elements"""
-        # TODO: uncomment
-        pass
-        # parsed_data = self.__get_file_parsed_data('with_comments.ura')
-        # self.assertDictEqual(parsed_data, self.expected_normal)
+        parsed_data = self.__get_file_parsed_data('with_comments.ura')
+        self.assertDictEqual(parsed_data, self.expected)
 
 
 if __name__ == '__main__':

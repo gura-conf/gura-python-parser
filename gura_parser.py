@@ -13,6 +13,7 @@ ACCEPTABLE_NUMBER_CHARS = BASIC_NUMBERS_CHARS + HEX_OCT_BIN + INF_AND_NAN + 'Ee+
 class MatchResultType(Enum):
     USELESS_LINE = auto(),
     PAIR = auto()
+    COMMENT = auto()
 
 
 class MatchResult:
@@ -53,6 +54,7 @@ class GuraParser(Parser):
                 self.line += 1
                 break
         print(f'Puntero en -> {self.text[self.pos]} (pos -> {self.pos})')
+        return MatchResult(MatchResultType.COMMENT)
 
     def ws_with_indentation(self):
         """
@@ -108,12 +110,7 @@ class GuraParser(Parser):
         else:
             good_char = 'whitespace'
             received_char = 'tabs'
-        raise ParseError(
-            self.pos + 1,
-            self.line,
-            f'Wrong indentation character! Using {good_char} but received {received_char}',
-            self.text[self.pos + 1]
-        )
+        raise ValueError(f'Wrong indentation character! Using {good_char} but received {received_char}')
 
     def start(self):
         rv = self.match('map')
@@ -126,6 +123,7 @@ class GuraParser(Parser):
             return rv
 
         # Checks if user defined an unquoted value
+        # TODO: uncomment when all tests pass
         # unquoted = self.maybe_match('unquoted_string')
         # colon = self.maybe_keyword(':')
         # if unquoted and colon is None:
@@ -175,13 +173,20 @@ class GuraParser(Parser):
         while True:
             self.maybe_match('ws')
             self.maybe_match('new_line')
+
+            # Discards useless lines between elements of array
+            useless_line = self.maybe_match('useless_line')
+            if useless_line is not None:
+                continue
+
             item = self.maybe_match('any_type')
+            print('ITEM ', item)
             if item is None:
                 break
 
-            print('ITEM ', item)
             rv.append(item)
 
+            self.maybe_match('ws')
             if not self.maybe_keyword(','):
                 break
 
@@ -192,14 +197,28 @@ class GuraParser(Parser):
 
     def useless_line(self):
         self.match('ws')
-        self.maybe_match('comment')
+        comment = self.maybe_match('comment')
+        initial_line = self.line
         self.maybe_match('new_line')
+        is_new_line = (self.line - initial_line) == 1
+
+        print(f'Comment -> {comment} | is_new_line -> {is_new_line}')
+        if comment is None and not is_new_line:
+            raise ParseError(
+                self.pos + 1,
+                self.line,
+                f'It is a valid line',
+            )
+
         return MatchResult(MatchResultType.USELESS_LINE)
+
 
     def map(self):
         rv = {}
         while self.pos < self.len:
+            # item: MatchResult = self.maybe_match('pair')  # TODO: if tests pass, check this one
             item: MatchResult = self.maybe_match('pair', 'useless_line')
+
             if item is None:
                 break
 
@@ -215,7 +234,9 @@ class GuraParser(Parser):
                     )
 
                 rv[key] = value
-            elif self.maybe_keyword(']', ',') is not None:
+
+            if self.maybe_keyword(']', ',') is not None:
+                print('"]" o "," matchearon')
                 # Breaks if it is the end of a list
                 self.__remove_last_indentation_level()
                 self.pos -= 1
