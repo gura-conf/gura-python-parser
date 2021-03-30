@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any, Union, Optional, List
 from parser import ParseError, Parser
 from enum import Enum, auto
@@ -14,6 +15,7 @@ class MatchResultType(Enum):
     USELESS_LINE = auto(),
     PAIR = auto()
     COMMENT = auto()
+    VARIABLE = auto()
 
 
 class MatchResult:
@@ -122,48 +124,49 @@ class GuraParser(Parser):
         if rv is not None:
             return rv
 
-        # Checks if user defined an unquoted value
-        # TODO: uncomment when all tests pass
-        # unquoted = self.maybe_match('unquoted_string')
-        # colon = self.maybe_keyword(':')
-        # if unquoted and colon is None:
-        # if unquoted:
-        #     raise ValueError(f'String value \'{unquoted}\' is not valid as unquoted strings are not allowed')
-        # elif colon is not None:
-        #     self.pos -= len(unquoted) + 1  # Considers colon length too
-
         return self.match('complex_type')
 
     def primitive_type(self):
         self.maybe_match('ws')
-        return self.match('null', 'boolean', 'quoted_string', 'number')
+        return self.match('null', 'boolean', 'quoted_string', 'number', 'variable_value')
 
     def complex_type(self):
         # return self.match('variable', 'list', 'map')
         # return self.match('map')
         return self.match('list', 'map')
 
-    # def variable(self):
-    #     """TODO: use"""
-    #     error_message = None
-    #
-    #     self.keyword('$')
-    #     key, value = self.match('pair')
-    #
-    #     if key in self.variables:
-    #         error_message = f'Variable \'{key}\' has been already declared'
-    #
-    #     if error_message is not None:
-    #         raise ParseError(
-    #             self.pos + 1,
-    #             self.line,
-    #             error_message,
-    #             self.text[self.pos + 1]
-    #         )
-    #
-    #     # Store as variable
-    #     self.variables[key] = value
-    #     return None
+    def variable_value(self):
+        """Matches with an already defined variable and gets its value"""
+        self.keyword('$')
+        key = self.match('unquoted_string')
+
+        if key in self.variables:
+            return self.variables[key]
+
+        env_variable = os.getenv(key)
+        if env_variable is not None:
+            return env_variable
+
+        raise ValueError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
+
+    def variable(self):
+        """Matches with a variable definition"""
+        self.keyword('$')
+        key = self.match('key')
+        self.maybe_match('ws')
+        value = self.match('any_type')
+
+        if key in self.variables:
+            raise ParseError(
+                self.pos + 1,
+                self.line,
+                f'Variable \'{key}\' has been already declared',
+                self.text[self.pos + 1]
+            )
+
+        # Store as variable
+        self.variables[key] = value
+        return MatchResult(MatchResultType.VARIABLE)
 
     def list(self):
         rv = []
@@ -212,12 +215,11 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.USELESS_LINE)
 
-
     def map(self):
         rv = {}
         while self.pos < self.len:
             # item: MatchResult = self.maybe_match('pair')  # TODO: if tests pass, check this one
-            item: MatchResult = self.maybe_match('pair', 'useless_line')
+            item: MatchResult = self.maybe_match('variable', 'pair', 'useless_line')
 
             if item is None:
                 break
