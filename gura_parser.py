@@ -80,7 +80,6 @@ class GuraParser(Parser):
             current_indentation_level += 1
 
         # TODO: add ParseError in case indentation is not divisible by 2
-        print(f'devolviendo -> {current_indentation_level}')
         return current_indentation_level
 
     def ws(self):
@@ -127,9 +126,13 @@ class GuraParser(Parser):
             return rv
 
         # Checks if user defined an unquoted value
-        unquoted = self.maybe_match('unquoted_string')
-        if unquoted:
-            raise ValueError(f'String value \'{unquoted}\' is not valid as unquoted strings are not allowed')
+        # unquoted = self.maybe_match('unquoted_string')
+        # colon = self.maybe_keyword(':')
+        # if unquoted and colon is None:
+        # if unquoted:
+        #     raise ValueError(f'String value \'{unquoted}\' is not valid as unquoted strings are not allowed')
+        # elif colon is not None:
+        #     self.pos -= len(unquoted) + 1  # Considers colon length too
 
         return self.match('complex_type')
 
@@ -168,6 +171,8 @@ class GuraParser(Parser):
 
         self.keyword('[')
         while True:
+            self.maybe_match('ws')
+            self.maybe_match('new_line')
             item = self.maybe_match('any_type')
             if item is None:
                 break
@@ -177,6 +182,8 @@ class GuraParser(Parser):
             if not self.maybe_keyword(','):
                 break
 
+        self.maybe_match('ws')
+        self.maybe_match('new_line')
         self.keyword(']')
         return rv
 
@@ -204,6 +211,11 @@ class GuraParser(Parser):
                         f'The key \'{key}\' has been already defined',
                     )
                 rv[key] = value
+            elif self.maybe_keyword(']', ',') is not None:
+                # Breaks if it is the end of a list
+                self.indentation_levels.pop()
+                self.pos -= 1
+                break
 
         return rv
 

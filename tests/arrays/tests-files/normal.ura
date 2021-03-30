@@ -7,7 +7,10 @@ tango_singers: [
 	user1:
 		name: "Carlos"
 		surname: "Gardel"
-		year_of_birth: 1890,
+		year_of_birth: 1890
+		testing_nested:
+			nested_1: 1
+			nested_2: 2,
 	user2:
 		name: "Aníbal"
 		surname: "Troilo"
