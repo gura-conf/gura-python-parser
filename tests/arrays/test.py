@@ -17,6 +17,7 @@ class TestArraysGura(unittest.TestCase):
         self.expected = {
             "colors": ["red", "yellow", "green"],
             "integers": [1, 2, 3],
+            "integers_with_new_line": [1, 2, 3],
             "nested_arrays_of_ints": [[1, 2], [3, 4, 5]],
             "nested_mixed_array": [[1, 2], ["a", "b", "c"]],
             "numbers": [0.1, 0.2, 0.5, 1, 2, 5],
@@ -36,7 +37,14 @@ class TestArraysGura(unittest.TestCase):
                     "surname": "Troilo",
                     "year_of_birth": 1914
                 }
-            }]
+            }],
+            "mixed_with_object": [
+                1,
+                {'test': {'genaro': 'Camele'}},
+                2,
+                [4, 5, 6],
+                3
+            ]
         }
 
     def __get_file_parsed_data(self, file_name) -> Dict:

@@ -137,6 +137,7 @@ class GuraParser(Parser):
         return self.match('complex_type')
 
     def primitive_type(self):
+        self.maybe_match('ws')
         return self.match('null', 'boolean', 'quoted_string', 'number')
 
     def complex_type(self):
@@ -169,6 +170,7 @@ class GuraParser(Parser):
     def list(self):
         rv = []
 
+        self.maybe_match('ws')
         self.keyword('[')
         while True:
             self.maybe_match('ws')
@@ -177,6 +179,7 @@ class GuraParser(Parser):
             if item is None:
                 break
 
+            print('ITEM ', item)
             rv.append(item)
 
             if not self.maybe_keyword(','):
@@ -210,14 +213,20 @@ class GuraParser(Parser):
                         self.line,
                         f'The key \'{key}\' has been already defined',
                     )
+
                 rv[key] = value
             elif self.maybe_keyword(']', ',') is not None:
                 # Breaks if it is the end of a list
-                self.indentation_levels.pop()
+                self.__remove_last_indentation_level()
                 self.pos -= 1
                 break
 
-        return rv
+        return rv if len(rv) > 0 else None
+
+    def __remove_last_indentation_level(self):
+        """Removes, if exists, the last indentation level"""
+        if len(self.indentation_levels) > 0:
+            self.indentation_levels.pop()
 
     def key(self):
         key = self.match('unquoted_string')
@@ -251,7 +260,7 @@ class GuraParser(Parser):
             self.indentation_levels.append(current_indentation_level)
         elif current_indentation_level < last_indentation_block:
             print(f'Eliminando {last_indentation_block}')
-            self.indentation_levels.pop()
+            self.__remove_last_indentation_level()
 
             # As the indentation was consumed, it is needed to return to line beginning to get the indentation level
             # again in the previous matching. Otherwise, the other match would get indentation level = 0
