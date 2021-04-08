@@ -45,7 +45,6 @@ class TestVariablesGura(unittest.TestCase):
 
     def test_with_error(self):
         """Tests errors in variables definition"""
-        # TODO: implement
         with self.assertRaises(ValueError):
             self.parser.parse(f'test: $false_var_{time.time_ns()}')
 
