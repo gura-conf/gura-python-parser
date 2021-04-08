@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Union, Optional, List
+from typing import Dict, Any, Union, Optional, List, Set, Tuple
 from parser import ParseError, Parser
 from enum import Enum, auto
 
@@ -34,12 +34,29 @@ class GuraParser(Parser):
     variables: Dict[str, Any]
     indent_char: Optional[str]
     indentation_levels: List[int]
+    imported_files: Set[str]
 
     def __init__(self):
         super(GuraParser, self).__init__()
         self.variables = {}
         self.indent_char = None
         self.indentation_levels = []
+        self.imported_files = set()
+
+    def parse(self, text):
+        self.__restart_params(text)
+
+        rv = self.start()
+
+        self.assert_end()
+        return rv
+
+    def __restart_params(self, text):
+        """Sets the params to start parsing from a specific text"""
+        self.text = text
+        self.pos = -1
+        self.line = 0
+        self.len = len(text) - 1
 
     def new_line(self):
         res = self.char('\f\v\r\n')
@@ -88,7 +105,7 @@ class GuraParser(Parser):
 
     def ws(self):
         """
-        Removes white spaces and comments which start with '#'
+        Matches white spaces and comments which start with '#'
         :return:
         """
         # TODO: refactor
@@ -114,7 +131,56 @@ class GuraParser(Parser):
             received_char = 'tabs'
         raise ValueError(f'Wrong indentation character! Using {good_char} but received {received_char}')
 
+    def get_text_with_imports(self, text) -> str:
+        """TODO: add docs"""
+        self.__restart_params(text)
+        self.__compute_imports()
+        return self.text
+
+    def gura_import(self) -> str:
+        """Matches import sentence"""
+        self.keyword('import')
+        self.match('ws')
+        file_to_import = self.match('quoted_string')
+        self.match('ws')
+        self.match('new_line')
+        return file_to_import
+
+    def __compute_imports(self):
+        files_to_import: List[str] = []
+
+        # First, consumes all the import sentences to replace all of them
+        while True:
+            file_to_import = self.maybe_match('gura_import')
+            if file_to_import is None:
+                break
+
+            files_to_import.append(file_to_import)
+
+        if len(files_to_import) > 0:
+            final_content = ''
+            for file_to_import in files_to_import:
+                # TODO: add check of duplicated import
+
+                try:
+                    with open(file_to_import, 'r') as f:
+                        print(f'Juntando datos de {file_to_import}')
+                        content = f.read()
+                        print('Content', content)
+                        # aux_parser = GuraParser()
+                        # content_with_import = aux_parser.get_text_with_imports(content)
+                        final_content += content
+
+                        self.imported_files.add(file_to_import)
+                except FileNotFoundError:
+                    raise ValueError(f'The file {file_to_import} does not exist')
+
+            # Sets as new text
+            self.__restart_params(final_content + self.text[self.pos:])
+
     def start(self):
+        while self.__compute_imports():
+            pass
         rv = self.match('map')
         self.eat_ws_and_new_lines()
         return rv
@@ -131,8 +197,6 @@ class GuraParser(Parser):
         return self.match('null', 'boolean', 'quoted_string', 'number', 'variable_value')
 
     def complex_type(self):
-        # return self.match('variable', 'list', 'map')
-        # return self.match('map')
         return self.match('list', 'map')
 
     def variable_value(self):
