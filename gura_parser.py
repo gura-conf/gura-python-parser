@@ -15,6 +15,7 @@ class MatchResultType(Enum):
     USELESS_LINE = auto(),
     PAIR = auto()
     COMMENT = auto()
+    IMPORT = auto()
     VARIABLE = auto()
 
 
@@ -131,45 +132,50 @@ class GuraParser(Parser):
             received_char = 'tabs'
         raise ValueError(f'Wrong indentation character! Using {good_char} but received {received_char}')
 
-    def get_text_with_imports(self, text) -> str:
+    def get_text_with_imports(self, text, parent_dir_path: str) -> str:
         """TODO: add docs"""
         self.__restart_params(text)
-        self.__compute_imports()
+        self.__compute_imports(parent_dir_path)
         return self.text
 
-    def gura_import(self) -> str:
+    def gura_import(self) -> MatchResult:
         """Matches import sentence"""
         self.keyword('import')
         self.match('ws')
         file_to_import = self.match('quoted_string')
         self.match('ws')
-        self.match('new_line')
-        return file_to_import
+        self.maybe_match('new_line')
+        return MatchResult(MatchResultType.IMPORT, file_to_import)
 
-    def __compute_imports(self):
-        files_to_import: List[str] = []
+    def __compute_imports(self, parent_dir_path: Optional[str]):
+        files_to_import: List[Tuple[str, str]] = []
 
         # First, consumes all the import sentences to replace all of them
-        while True:
-            file_to_import = self.maybe_match('gura_import')
-            if file_to_import is None:
+        while self.pos < self.len:
+            match_result: MatchResult = self.maybe_match('gura_import', 'useless_line')
+            if match_result is None:
                 break
 
-            files_to_import.append(file_to_import)
+            # Checks, it could be a comment
+            if match_result.result_type == MatchResultType.IMPORT:
+                files_to_import.append((match_result.value, parent_dir_path))
 
         if len(files_to_import) > 0:
             final_content = ''
-            for file_to_import in files_to_import:
+            for (file_to_import, origin_file_path) in files_to_import:
                 # TODO: add check of duplicated import
 
                 try:
+                    if origin_file_path is not None:
+                        file_to_import = os.path.join(origin_file_path, file_to_import)
+
                     with open(file_to_import, 'r') as f:
-                        print(f'Juntando datos de {file_to_import}')
+                        # Gets content considering imports
                         content = f.read()
-                        print('Content', content)
-                        # aux_parser = GuraParser()
-                        # content_with_import = aux_parser.get_text_with_imports(content)
-                        final_content += content
+                        aux_parser = GuraParser()
+                        parent_dir_path = os.path.dirname(file_to_import)
+                        content_with_import = aux_parser.get_text_with_imports(content, parent_dir_path)
+                        final_content += content_with_import
 
                         self.imported_files.add(file_to_import)
                 except FileNotFoundError:
@@ -179,8 +185,7 @@ class GuraParser(Parser):
             self.__restart_params(final_content + self.text[self.pos:])
 
     def start(self):
-        while self.__compute_imports():
-            pass
+        self.__compute_imports(parent_dir_path=None)
         rv = self.match('map')
         self.eat_ws_and_new_lines()
         return rv

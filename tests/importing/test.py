@@ -24,7 +24,8 @@ class TestImportingGura(unittest.TestCase):
                 "year_of_birth": 1914
             },
             "from_original_1": [1, 2, 5],
-            "from_original_2": False
+            "from_original_2": False,
+            "from_file_three": True,
         }
 
     def __get_file_parsed_data(self, file_name) -> Dict:
@@ -46,12 +47,17 @@ class TestImportingGura(unittest.TestCase):
     def test_not_found_error(self):
         """Tests errors importing a non existing file"""
         with self.assertRaises(ValueError):
-            self.parser.parse(f'import "invalid_file.ura"')
+            self.parser.parse('import "invalid_file.ura"')
 
     def test_duplicated_variables_error(self):
         """Tests errors when redefines a variable"""
         with self.assertRaises(ValueError):
             self.__get_file_parsed_data('duplicated_variables.ura')
+
+    def test_with_absolute_paths(self):
+        """Tests that absolute paths works as expected"""
+        # TODO: implement using temp files
+        pass
 
 
 if __name__ == '__main__':
