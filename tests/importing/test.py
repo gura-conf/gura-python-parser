@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from typing import Dict
 from gura_parser import GuraParser, DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError
@@ -65,8 +66,15 @@ class TestImportingGura(unittest.TestCase):
 
     def test_with_absolute_paths(self):
         """Tests that absolute paths works as expected"""
-        # TODO: implement using temp files
-        pass
+        tmp = tempfile.NamedTemporaryFile()
+        with open(tmp.name, 'w') as temp:
+            temp.write('from_temp: true')
+        parsed_data = self.parser.parse(f'import "{temp.name}"\n'
+                                        f'from_original: false')
+        self.assertDictEqual(parsed_data, {
+            'from_temp': True,
+            'from_original': False
+        })
 
 
 if __name__ == '__main__':
