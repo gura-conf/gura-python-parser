@@ -1,3 +1,0 @@
-# Both have defined a key called "my_value"
-import "duplicated_variables_aux_1.ura"
-import "duplicated_variables_aux_2.ura"

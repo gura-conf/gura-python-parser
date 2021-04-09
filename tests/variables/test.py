@@ -1,9 +1,8 @@
 import unittest
 import time
 from typing import Dict
-from gura_parser import GuraParser
+from gura_parser import GuraParser, VariableNotDefinedError, DuplicatedVariableError
 import os
-from parser import ParseError
 
 
 class TestVariablesGura(unittest.TestCase):
@@ -45,8 +44,14 @@ class TestVariablesGura(unittest.TestCase):
 
     def test_with_error(self):
         """Tests errors in variables definition"""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(VariableNotDefinedError):
             self.parser.parse(f'test: $false_var_{time.time_ns()}')
+
+    def test_with_duplicated(self):
+        """Tests errors when a variable is defined more than once"""
+        with self.assertRaises(DuplicatedVariableError):
+            self.parser.parse(f'$a_var: 14\n'
+                              f'$a_var: 14')
 
     def test_env_var(self):
         """Tests using environment variables"""

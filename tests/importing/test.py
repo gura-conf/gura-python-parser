@@ -1,7 +1,6 @@
 import unittest
-import time
 from typing import Dict
-from gura_parser import GuraParser
+from gura_parser import GuraParser, DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError
 import os
 from parser import ParseError
 
@@ -49,10 +48,20 @@ class TestImportingGura(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.parser.parse('import "invalid_file.ura"')
 
-    def test_duplicated_variables_error(self):
+    def test_duplicated_key_error(self):
+        """Tests errors when redefines a key"""
+        with self.assertRaises(DuplicatedKeyError):
+            self.__get_file_parsed_data('duplicated_key.ura')
+
+    def test_duplicated_variable_error(self):
         """Tests errors when redefines a variable"""
-        with self.assertRaises(ValueError):
-            self.__get_file_parsed_data('duplicated_variables.ura')
+        with self.assertRaises(DuplicatedVariableError):
+            self.__get_file_parsed_data('duplicated_variable.ura')
+
+    def test_duplicated_imports(self):
+        """Tests errors when imports more than once a file"""
+        with self.assertRaises(DuplicatedImportError):
+            self.__get_file_parsed_data('duplicated_imports_simple.ura')
 
     def test_with_absolute_paths(self):
         """Tests that absolute paths works as expected"""

@@ -3,6 +3,27 @@ from typing import Dict, Any, Union, Optional, List, Set, Tuple
 from parser import ParseError, Parser
 from enum import Enum, auto
 
+
+class DuplicatedImportError(Exception):
+    """Raises when a file is imported more than once"""
+    pass
+
+
+class DuplicatedKeyError(Exception):
+    """Raises when a key is defined more than once"""
+    pass
+
+
+class DuplicatedVariableError(Exception):
+    """Raises when a variable is defined more than once"""
+    pass
+
+
+class VariableNotDefinedError(Exception):
+    """Raises when a variable is not defined"""
+    pass
+
+
 # Number chars
 BASIC_NUMBERS_CHARS = '0-9'
 HEX_OCT_BIN = 'A-Fa-fxob'
@@ -50,7 +71,7 @@ class GuraParser(Parser):
         rv = self.start()
 
         self.assert_end()
-        return rv
+        return rv if rv is not None else {}
 
     def __restart_params(self, text):
         """Sets the params to start parsing from a specific text"""
@@ -68,7 +89,6 @@ class GuraParser(Parser):
         self.keyword('#')
         while self.pos < self.len:
             char = self.text[self.pos + 1]
-            # char = self.text[self.pos]
             self.pos += 1
             if char in '\f\v\r\n':
                 self.line += 1
@@ -76,12 +96,10 @@ class GuraParser(Parser):
         print(f'Puntero en -> {self.text[self.pos]} (pos -> {self.pos})')
         return MatchResult(MatchResultType.COMMENT)
 
-    def ws_with_indentation(self):
+    def ws_with_indentation(self) -> int:
         """
-        Removes white spaces and comments which start with '#'
-        TODO: complete
-        :param check_indentation:
-        :return:
+        Matches with white spaces taking into consideration indentation levels
+        @:return Indentation level
         """
         current_indentation_level = 0
 
@@ -132,11 +150,22 @@ class GuraParser(Parser):
             received_char = 'tabs'
         raise ValueError(f'Wrong indentation character! Using {good_char} but received {received_char}')
 
-    def get_text_with_imports(self, text, parent_dir_path: str) -> str:
-        """TODO: add docs"""
-        self.__restart_params(text)
-        self.__compute_imports(parent_dir_path)
-        return self.text
+    def get_text_with_imports(
+        self,
+        original_text,
+        parent_dir_path: str,
+        imported_files: Set[str]
+    ) -> Tuple[str, Set[str]]:
+        """
+        Gets final text taking in consideration imports in original text
+        :param original_text: Text to be parsed
+        :param parent_dir_path: Parent directory to keep relative paths reference
+        :param imported_files: Set with imported files to check if any was imported more than once
+        :return: Final text with imported files' text on it
+        """
+        self.__restart_params(original_text)
+        imported_files = self.__compute_imports(parent_dir_path, imported_files)
+        return self.text, imported_files
 
     def gura_import(self) -> MatchResult:
         """Matches import sentence"""
@@ -147,7 +176,13 @@ class GuraParser(Parser):
         self.maybe_match('new_line')
         return MatchResult(MatchResultType.IMPORT, file_to_import)
 
-    def __compute_imports(self, parent_dir_path: Optional[str]):
+    def __compute_imports(self, parent_dir_path: Optional[str], imported_files: Set[str]) -> Set[str]:
+        """
+        TODO: add docs
+        :param parent_dir_path:
+        :param imported_files:
+        :return:
+        """
         files_to_import: List[Tuple[str, str]] = []
 
         # First, consumes all the import sentences to replace all of them
@@ -163,29 +198,38 @@ class GuraParser(Parser):
         if len(files_to_import) > 0:
             final_content = ''
             for (file_to_import, origin_file_path) in files_to_import:
-                # TODO: add check of duplicated import
+                # Gets the final file path considering parent directory
+                if origin_file_path is not None:
+                    file_to_import = os.path.join(origin_file_path, file_to_import)
+
+                # Files can be imported only once. This prevents circular reference
+                if file_to_import in imported_files:
+                    raise DuplicatedImportError(f'The file {file_to_import} has been already imported')
 
                 try:
-                    if origin_file_path is not None:
-                        file_to_import = os.path.join(origin_file_path, file_to_import)
-
                     with open(file_to_import, 'r') as f:
                         # Gets content considering imports
                         content = f.read()
                         aux_parser = GuraParser()
                         parent_dir_path = os.path.dirname(file_to_import)
-                        content_with_import = aux_parser.get_text_with_imports(content, parent_dir_path)
-                        final_content += content_with_import
+                        content_with_import, imported_files = aux_parser.get_text_with_imports(
+                            content,
+                            parent_dir_path,
+                            imported_files
+                        )
+                        final_content += content_with_import + '\n'
+                        imported_files.add(file_to_import)
 
                         self.imported_files.add(file_to_import)
                 except FileNotFoundError:
                     raise ValueError(f'The file {file_to_import} does not exist')
 
             # Sets as new text
-            self.__restart_params(final_content + self.text[self.pos:])
+            self.__restart_params(final_content + self.text[self.pos + 1:])
+        return imported_files
 
     def start(self):
-        self.__compute_imports(parent_dir_path=None)
+        self.__compute_imports(parent_dir_path=None, imported_files=set())
         rv = self.match('map')
         self.eat_ws_and_new_lines()
         return rv
@@ -216,21 +260,21 @@ class GuraParser(Parser):
         if env_variable is not None:
             return env_variable
 
-        raise ValueError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
+        raise VariableNotDefinedError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
 
     def variable(self):
         """Matches with a variable definition"""
+        initial_pos = self.pos
         self.keyword('$')
         key = self.match('key')
         self.maybe_match('ws')
         value = self.match('any_type')
 
         if key in self.variables:
-            raise ParseError(
+            raise DuplicatedVariableError(
                 self.pos + 1,
                 self.line,
                 f'Variable \'{key}\' has been already declared',
-                self.text[self.pos + 1]
             )
 
         # Store as variable
@@ -287,7 +331,6 @@ class GuraParser(Parser):
     def map(self):
         rv = {}
         while self.pos < self.len:
-            # item: MatchResult = self.maybe_match('pair')  # TODO: if tests pass, check this one
             item: MatchResult = self.maybe_match('variable', 'pair', 'useless_line')
 
             if item is None:
@@ -298,7 +341,7 @@ class GuraParser(Parser):
                 key, value = item.value
                 print(f"Pair obtenido '{item.value}'")
                 if key in rv:
-                    raise ParseError(
+                    raise DuplicatedKeyError(
                         self.pos + 1,
                         self.line,
                         f'The key \'{key}\' has been already defined',
@@ -385,7 +428,7 @@ class GuraParser(Parser):
         Parses an unquoted string. Useful for keys
         :return: Parsed unquoted string
         """
-        acceptable_chars = '0-9A-Za-z!$%&()*+./;<=>?^_`|~-'
+        acceptable_chars = '0-9A-Za-z!%&()*+./;<=>?^_`|~-'
 
         chars = [self.char(acceptable_chars)]
 
