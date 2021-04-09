@@ -17,6 +17,7 @@ class TestFullGura(unittest.TestCase):
             self.content = file.read()
         self.parser = GuraParser()
         self.parsed_data = self.parser.parse(self.content)
+        self.maxDiff = 4096
 
     def test_loads(self):
         target_dir = {
