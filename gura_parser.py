@@ -171,7 +171,7 @@ class GuraParser(Parser):
         """Matches import sentence"""
         self.keyword('import')
         self.match('ws')
-        file_to_import = self.match('quoted_string')
+        file_to_import = self.match('basic_string')
         self.match('ws')
         self.maybe_match('new_line')
         return MatchResult(MatchResultType.IMPORT, file_to_import)
@@ -243,7 +243,7 @@ class GuraParser(Parser):
 
     def primitive_type(self):
         self.maybe_match('ws')
-        return self.match('null', 'boolean', 'quoted_string', 'number', 'variable_value')
+        return self.match('null', 'boolean', 'basic_string', 'number', 'variable_value')
 
     def complex_type(self):
         return self.match('list', 'map')
@@ -491,7 +491,11 @@ class GuraParser(Parser):
                 f'\'{rv}\' is not a valid number',
             )
 
-    def quoted_string(self):
+    def basic_string(self) -> str:
+        """
+        Matches with a basic string
+        :return: Matched string
+        """
         quote = self.char('"\'')
         chars = []
 
@@ -501,6 +505,8 @@ class GuraParser(Parser):
             'n': '\n',
             'r': '\r',
             't': '\t',
+            '"': '"',
+            '\\': '\\'
         }
 
         while True:
@@ -510,13 +516,14 @@ class GuraParser(Parser):
             elif char == '\\':
                 escape = self.char()
                 if escape == 'u':
+                    # Computes Unicode
                     code_point = []
                     for i in range(4):
                         code_point.append(self.char('0-9a-fA-F'))
 
                     chars.append(chr(int(''.join(code_point), 16)))
                 else:
-                    chars.append(escape_sequences.get(char, char))
+                    chars.append(escape_sequences.get(escape, char))
             else:
                 chars.append(char)
 
@@ -531,6 +538,7 @@ if __name__ == '__main__':
     try:
         # pprint(parser.parse(sys.stdin.read()))
         with open('tests/prueba.ura', 'r') as file:
-            pprint(parser.parse(file.read()))
+            parsed = parser.parse(file.read())
+            pprint(parsed)
     except ParseError as e:
         print('Error: ', str(e))
