@@ -31,6 +31,9 @@ INF_AND_NAN = 'in'  # The rest of the chars are defined in hex_oct_bin
 # IMPORTANT: '-' char must be last, otherwise it will be interpreted as a range
 ACCEPTABLE_NUMBER_CHARS = BASIC_NUMBERS_CHARS + HEX_OCT_BIN + INF_AND_NAN + 'Ee+._-'
 
+# Acceptable chars for keys
+KEY_ACCEPTABLE_CHARS = '0-9A-Za-z_-'
+
 
 class MatchResultType(Enum):
     USELESS_LINE = auto(),
@@ -248,11 +251,13 @@ class GuraParser(Parser):
     def complex_type(self):
         return self.match('list', 'map')
 
-    def variable_value(self):
-        """Matches with an already defined variable and gets its value"""
-        self.keyword('$')
-        key = self.match('unquoted_string')
-
+    def __get_variable_value(self, key: str) -> Any:
+        """
+        Gets a variable value for a specific key from defined variables in file or as environment variable
+        :param key: Key to retrieve
+        :return:
+        :raise VariableNotDefinedError if the variable is not defined in file nor environment
+        """
         if key in self.variables:
             return self.variables[key]
 
@@ -261,6 +266,12 @@ class GuraParser(Parser):
             return env_variable
 
         raise VariableNotDefinedError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
+
+    def variable_value(self) -> Any:
+        """Matches with an already defined variable and gets its value"""
+        self.keyword('$')
+        key = self.match('unquoted_string')
+        return self.__get_variable_value(key)
 
     def variable(self):
         """Matches with a variable definition"""
@@ -350,7 +361,6 @@ class GuraParser(Parser):
                 rv[key] = value
 
             if self.maybe_keyword(']', ',') is not None:
-                print('"]" o "," matchearon')
                 # Breaks if it is the end of a list
                 self.__remove_last_indentation_level()
                 self.pos -= 1
@@ -428,12 +438,10 @@ class GuraParser(Parser):
         Parses an unquoted string. Useful for keys
         :return: Parsed unquoted string
         """
-        acceptable_chars = '0-9A-Za-z!%&()*+./;<=>?^_`|~-'
-
-        chars = [self.char(acceptable_chars)]
+        chars = [self.char(KEY_ACCEPTABLE_CHARS)]
 
         while True:
-            char = self.maybe_char(acceptable_chars)
+            char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
             if char is None:
                 break
 
@@ -524,9 +532,19 @@ class GuraParser(Parser):
                     chars.append(chr(int(''.join(code_point), 16)))
                 else:
                     chars.append(escape_sequences.get(escape, char))
+            elif char == '$':
+                # Computes variables values in string
+                print('ENTRANDO A UNA VARIABLE')
+                var_name = ''
+                var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
+                while var_name_char is not None:
+                    var_name += var_name_char
+                    var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
+                chars.append(self.__get_variable_value(var_name))
             else:
                 chars.append(char)
 
+        print(f'Retornando de BASIC_STRING con {chars}')
         return ''.join(chars)
 
 

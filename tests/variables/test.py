@@ -56,14 +56,14 @@ class TestVariablesGura(unittest.TestCase):
     def test_env_var(self):
         """Tests using environment variables"""
         # Sets a new environment variable to check the correct value retrieval from Gura
-        env_name = f'env_var_{time.time_ns()}'
+        env_var_name = f'env_var_{time.time_ns()}'
         env_value = "using_env_var"
-        os.environ[env_name] = env_value
+        os.environ[env_var_name] = env_value
 
         # Parses and tests
-        parsed_data = self.parser.parse(f'test: ${env_name}')
+        parsed_data = self.parser.parse(f'test: ${env_var_name}')
         self.assertDictEqual(parsed_data, {"test": env_value})
-        os.unsetenv(env_name)
+        os.unsetenv(env_var_name)
 
 
 if __name__ == '__main__':

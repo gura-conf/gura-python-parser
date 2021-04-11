@@ -3,7 +3,6 @@ import unittest
 from typing import Dict
 from gura_parser import GuraParser, DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError
 import os
-from parser import ParseError
 
 
 class TestImportingGura(unittest.TestCase):
