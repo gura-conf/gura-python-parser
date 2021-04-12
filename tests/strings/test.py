@@ -31,7 +31,10 @@ class TestStringsGura(unittest.TestCase):
             "with_var": multiline_value,
             "with_env_var": multiline_value,
             "str_with_backslash": multiline_value_without_newline,
-            "str_with_backslash_2": multiline_value_without_newline
+            "str_with_backslash_2": multiline_value_without_newline,
+            'str_4': 'Here are two quotation marks: "". Simple enough.',
+            'str_5': 'Here are three quotation marks: """.',
+            'str_6': 'Here are fifteen quotation marks: """"""""""""""".',
         }
         self.maxDiff = 4096
 
