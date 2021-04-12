@@ -507,9 +507,11 @@ class GuraParser(Parser):
         """
         quote = self.keyword('"""', '"')
 
+        is_multiline = quote == '"""'
+
         # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
         # newline characters remain intact.
-        if quote == '"""':
+        if is_multiline:
             self.maybe_char('\n')
 
         chars = []
@@ -533,24 +535,22 @@ class GuraParser(Parser):
             if char == '\\':
                 escape = self.char()
 
+                # Checks backslash followed by a newline to trim all whitespaces
+                if is_multiline and escape == '\n':
+                    self.eat_ws_and_new_lines()
                 # Supports Unicode of 16 and 32 bits representation
-                if escape == 'u':
-                    num_chars_code_point = 4
-                elif escape == 'U':
-                    num_chars_code_point = 8
-                else:
-                    num_chars_code_point = None
-
-                if num_chars_code_point is not None:
+                elif escape == 'u' or escape == 'U':
+                    num_chars_code_point = 4 if escape == 'u' else 8
                     code_point = []
                     for i in range(num_chars_code_point):
                         code_point.append(self.char('0-9a-fA-F'))
                     hex_value = int(''.join(code_point), 16)
                     chars.append(chr(hex_value))
+                # Gets scaped char
                 else:
                     chars.append(escape_sequences.get(escape, char))
+            # Computes variables values in string
             elif char == '$':
-                # Computes variables values in string
                 var_name = ''
                 var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
                 while var_name_char is not None:

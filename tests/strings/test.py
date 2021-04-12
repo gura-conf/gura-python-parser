@@ -23,13 +23,17 @@ class TestStringsGura(unittest.TestCase):
         }
 
         multiline_value = "Roses are red\nViolets are blue"
+        multiline_value_without_newline = "The quick brown fox jumps over the lazy dog."
         self.expected_multiline_basic = {
             "str": multiline_value,
             "str_2": multiline_value,
             "str_3": multiline_value,
             "with_var": multiline_value,
-            "with_env_var": multiline_value
+            "with_env_var": multiline_value,
+            "str_with_backslash": multiline_value_without_newline,
+            "str_with_backslash_2": multiline_value_without_newline
         }
+        self.maxDiff = 4096
 
     def __get_file_parsed_data(self, file_name) -> Dict:
         """
