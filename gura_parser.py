@@ -246,7 +246,8 @@ class GuraParser(Parser):
 
     def primitive_type(self):
         self.maybe_match('ws')
-        return self.match('null', 'boolean', 'multiline_basic_string', 'basic_string', 'number', 'variable_value')
+        # return self.match('null', 'boolean', 'multiline_basic_string', 'basic_string', 'number', 'variable_value')
+        return self.match('null', 'boolean', 'basic_string', 'number', 'variable_value')
 
     def complex_type(self):
         return self.match('list', 'map')
@@ -501,10 +502,16 @@ class GuraParser(Parser):
 
     def basic_string(self) -> str:
         """
-        Matches with a basic string
+        Matches with a simple/multiline basic string
         :return: Matched string
         """
-        quote = self.char('"')
+        quote = self.keyword('"""', '"')
+
+        # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
+        # newline characters remain intact.
+        if quote == '"""':
+            self.maybe_char('\n')
+
         chars = []
 
         escape_sequences = {
@@ -518,10 +525,12 @@ class GuraParser(Parser):
         }
 
         while True:
-            char = self.char()
-            if char == quote:
+            closing_quote = self.maybe_keyword(quote)
+            if closing_quote is not None:
                 break
-            elif char == '\\':
+
+            char = self.char()
+            if char == '\\':
                 escape = self.char()
 
                 # Supports Unicode of 16 and 32 bits representation
@@ -538,61 +547,6 @@ class GuraParser(Parser):
                         code_point.append(self.char('0-9a-fA-F'))
                     hex_value = int(''.join(code_point), 16)
                     chars.append(chr(hex_value))
-                else:
-                    chars.append(escape_sequences.get(escape, char))
-            elif char == '$':
-                # Computes variables values in string
-                var_name = ''
-                var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
-                while var_name_char is not None:
-                    var_name += var_name_char
-                    var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
-                chars.append(self.__get_variable_value(var_name))
-            else:
-                chars.append(char)
-
-        print(f'Retornando de BASIC_STRING con {chars}')
-        return ''.join(chars)
-
-    def multiline_basic_string(self) -> str:
-        """
-        TODO: merge with basic_string as it's the same behavior
-        Matches with a multiline basic string
-        :return: Matched string
-        """
-        self.keyword('"""')
-
-        # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
-        # newline characters remain intact.
-        self.maybe_char('\n')
-
-        chars = []
-
-        escape_sequences = {
-            'b': '\b',
-            'f': '\f',
-            'n': '\n',
-            'r': '\r',
-            't': '\t',
-            '"': '"',
-            '\\': '\\'
-        }
-
-        while True:
-            triple_quotation_marks = self.maybe_keyword('"""')
-            if triple_quotation_marks is not None:
-                break
-            char = self.char()
-
-            if char == '\\':
-                escape = self.char()
-                if escape == 'u':
-                    # Computes Unicode
-                    code_point = []
-                    for i in range(4):
-                        code_point.append(self.char('0-9a-fA-F'))
-
-                    chars.append(chr(int(''.join(code_point), 16)))
                 else:
                     chars.append(escape_sequences.get(escape, char))
             elif char == '$':
