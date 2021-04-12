@@ -1,0 +1,18 @@
+$roses: "Roses"
+
+str: """
+Roses are red
+Violets are blue"""
+
+str_2: """Roses are red
+Violets are blue"""
+
+str_3: """Roses are red\nViolets are blue"""
+
+with_var: """
+$roses are red
+Violets are blue"""
+
+with_env_var: """$env_var_value are red\nViolets are blue""" # $env_var_value is defined in corresponding test.py
+
+
