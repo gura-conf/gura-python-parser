@@ -6,21 +6,14 @@ import os
 
 
 class TestFullGura(unittest.TestCase):
-    content: str
+    file_dir: str
     parser: GuraParser
     parsed_data: Dict
 
     def setUp(self):
-        file_dir = os.path.dirname(os.path.abspath(__file__))
-        full_test_path = os.path.join(file_dir, 'tests-files/full.ura')
-        with open(full_test_path, 'r') as file:
-            self.content = file.read()
+        self.file_dir = os.path.dirname(os.path.abspath(__file__))
         self.parser = GuraParser()
-        self.parsed_data = self.parser.parse(self.content)
-        self.maxDiff = 4096
-
-    def test_loads(self):
-        target_dir = {
+        self.expected = {
             "a_string": "test string",
             "int1": +99,
             "int2": 42,
@@ -28,7 +21,7 @@ class TestFullGura(unittest.TestCase):
             "int4": -17,
             "int5": 1000,
             "int6": 5349221,
-            "int7": 5349221 ,
+            "int7": 5349221,
             "hex1": 3735928559,
             "hex2": 3735928559,
             "hex3": 3735928559,
@@ -46,9 +39,6 @@ class TestFullGura(unittest.TestCase):
             "sf1": math.inf,
             "sf2": math.inf,
             "sf3": -math.inf,
-            "sf4": math.nan,
-            "sf5": math.nan,
-            "sf6": -math.nan,
             "bool1": True,
             "bool2": False,
             "services": {
@@ -61,11 +51,11 @@ class TestFullGura(unittest.TestCase):
                     "port": 81
                 }
             },
-            "integers": [ 1, 2, 3 ],
-            "colors": [ "red", "yellow", "green" ],
-            "nested_arrays_of_ints": [ [ 1, 2 ], [3, 4, 5] ],
-            "nested_mixed_array": [ [ 1, 2 ], ["a", "b", "c"] ],
-            "numbers": [ 0.1, 0.2, 0.5, 1, 2, 5 ],
+            "integers": [1, 2, 3],
+            "colors": ["red", "yellow", "green"],
+            "nested_arrays_of_ints": [[1, 2], [3, 4, 5]],
+            "nested_mixed_array": [[1, 2], ["a", "b", "c"]],
+            "numbers": [0.1, 0.2, 0.5, 1, 2, 5],
             "tango_singers": [
                 {
                     "user1": {
@@ -82,11 +72,11 @@ class TestFullGura(unittest.TestCase):
                 }
             ],
             "integers2": [
-              1, 2, 3
+                1, 2, 3
             ],
             "integers3": [
-              1,
-              2
+                1,
+                2
             ],
             "my_server": {
                 "host": "127.0.0.1",
@@ -95,7 +85,29 @@ class TestFullGura(unittest.TestCase):
             },
             "gura_is_cool": "Gura is cool"
         }
-        self.assertDictEqual(self.parsed_data, target_dir)
+        self.maxDiff = 4096999
+
+    def __get_file_parsed_data(self, file_name) -> Dict:
+        """
+        Gets the content of a specific file parsed
+        :param file_name: File name to get the content
+        :return: Parsed data
+        """
+        full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
+        with open(full_test_path, 'r') as file:
+            content = file.read()
+        return self.parser.parse(content)
+
+    def test_loads(self):
+        """Test all the common cases except NaNs"""
+        parsed_data = self.__get_file_parsed_data('full.ura')
+        self.assertDictEqual(parsed_data, self.expected)
+
+    def test_loads_nan(self):
+        """Test NaNs cases as they are an exceptional case"""
+        parsed_data = self.__get_file_parsed_data('nan.ura')
+        for value in parsed_data.values():
+            self.assertTrue(math.isnan(value))
 
     def test_dumps(self):
         # string_data = self.parser.dumps(self.content)

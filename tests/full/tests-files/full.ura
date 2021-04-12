@@ -37,11 +37,7 @@ sf1: inf  # Positive infinity
 sf2: +inf # Positive infinity
 sf3: -inf # Negative infinity
 
-# Not a number
-sf4: nan
-sf5: +nan
-sf6: -nan
-
+# Bool
 bool1: true
 bool2: false
 
