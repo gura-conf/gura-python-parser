@@ -174,6 +174,8 @@ class GuraParser(Parser):
         """Matches import sentence"""
         self.keyword('import')
         self.match('ws')
+        # TODO: change basic_string for a new "quoted_string" which doesn't take scaping or variables into consideration
+        # TODO: or make possible the usage of variables inside an import sentence
         file_to_import = self.match('basic_string')
         self.match('ws')
         self.maybe_match('new_line')
@@ -247,7 +249,7 @@ class GuraParser(Parser):
     def primitive_type(self):
         self.maybe_match('ws')
         # return self.match('null', 'boolean', 'multiline_basic_string', 'basic_string', 'number', 'variable_value')
-        return self.match('null', 'boolean', 'basic_string', 'number', 'variable_value')
+        return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value')
 
     def complex_type(self):
         return self.match('list', 'map')
@@ -560,7 +562,32 @@ class GuraParser(Parser):
             else:
                 chars.append(char)
 
-        print(f'Retornando de BASIC_STRING con {chars}')
+        return ''.join(chars)
+
+    def literal_string(self) -> str:
+        """
+        Matches with a simple/multiline literal string
+        :return: Matched string
+        """
+        quote = self.keyword("'''", "'")
+
+        is_multiline = quote == "'''"
+
+        # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
+        # newline characters remain intact.
+        if is_multiline:
+            self.maybe_char('\n')
+
+        chars = []
+
+        while True:
+            closing_quote = self.maybe_keyword(quote)
+            if closing_quote is not None:
+                break
+
+            char = self.char()
+            chars.append(char)
+
         return ''.join(chars)
 
 
@@ -574,5 +601,6 @@ if __name__ == '__main__':
         with open('tests/prueba.ura', 'r') as file:
             parsed = parser.parse(file.read())
             pprint(parsed)
+            print(parsed)
     except ParseError as e:
         print('Error: ', str(e))

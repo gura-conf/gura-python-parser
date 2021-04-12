@@ -10,6 +10,8 @@ class TestStringsGura(unittest.TestCase):
     parser: GuraParser
     expected_basic: Dict
     expected_multiline_basic: Dict
+    expected_literal: Dict
+    expected_multiline_literal: Dict
 
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +37,20 @@ class TestStringsGura(unittest.TestCase):
             'str_4': 'Here are two quotation marks: "". Simple enough.',
             'str_5': 'Here are three quotation marks: """.',
             'str_6': 'Here are fifteen quotation marks: """"""""""""""".',
+        }
+
+        self.expected_literal = {
+            'quoted': 'Tom "Dubs" Preston-Werner',
+            'regex': '<\\i\\c*\\s*>',
+            'winpath': 'C:\\Users\\nodejs\\templates',
+            'winpath2': '\\\\ServerX\\admin$\\system32\\',
+            'with_var': '$no_parsed variable!'
+        }
+
+        self.expected_multiline_literal = {
+            'lines': 'The first newline is\ntrimmed in raw strings.\n   All other whitespace\n   is preserved.\n',
+            'regex2': "I [dw]on't need \\d{2} apples",
+            'with_var': '$no_parsed variable!'
         }
         self.maxDiff = 4096
 
@@ -69,6 +85,16 @@ class TestStringsGura(unittest.TestCase):
         """Tests errors in basic strings"""
         with self.assertRaises(VariableNotDefinedError):
             self.parser.parse(f'test: "$false_var_{time.time_ns()}"')
+
+    def test_literal_strings(self):
+        """Tests literal strings"""
+        parsed_data = self.__get_file_parsed_data('literal.ura')
+        self.assertDictEqual(parsed_data, self.expected_literal)
+
+    def test_multiline_literal_strings(self):
+        """Tests multiline literal strings"""
+        parsed_data = self.__get_file_parsed_data('multiline_literal.ura')
+        self.assertDictEqual(parsed_data, self.expected_multiline_literal)
 
 
 if __name__ == '__main__':
