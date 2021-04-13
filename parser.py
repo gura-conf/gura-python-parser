@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Optional, Any
 
 
 class ParseError(Exception):
@@ -13,6 +13,7 @@ class ParseError(Exception):
 
 
 class Parser:
+    """Base parser"""
     text: str
     pos: int
     line: int
@@ -27,12 +28,20 @@ class Parser:
         self.line = 0
         self.len = len(text) - 1
 
-        rv = self.start()
+        result = self.start()
 
         self.assert_end()
-        return rv
+        return result
+
+    def start(self):
+        """Subclass responsibility"""
+        pass
 
     def assert_end(self):
+        """
+        Checks that the parser has reached the end of file, otherwise it will raise a ParseError
+        :raise: ParseError if EOL has not been reached
+        """
         if self.pos < self.len:
             raise ParseError(
                 self.pos + 1,
@@ -41,13 +50,18 @@ class Parser:
                 self.text[self.pos + 1]
             )
 
-    def split_char_ranges(self, chars):
+    def split_char_ranges(self, chars: str):
+        """
+        Generates a list of char from a list of char which could container char ranges (i.e. a-z or 0-9)
+        :param chars: List of chars to process
+        :return: List of char with ranges processed
+        """
         try:
             return self.cache[chars]
         except KeyError:
             pass
 
-        rv = []
+        result = []
         index = 0
         length = len(chars)
 
@@ -56,16 +70,22 @@ class Parser:
                 if chars[index] >= chars[index + 2]:
                     raise ValueError('Bad character range')
 
-                rv.append(chars[index:index + 3])
+                result.append(chars[index:index + 3])
                 index += 3
             else:
-                rv.append(chars[index])
+                result.append(chars[index])
                 index += 1
 
-        self.cache[chars] = rv
-        return rv
+        self.cache[chars] = result
+        return result
 
-    def char(self, chars=None) -> str:
+    def char(self, chars: Optional[str] = None) -> str:
+        """
+        Matches a list of specific chars and returns the first that matched. If any matched, it will raise a ParseError
+        :param chars: Chars to match. If it is None, it will return the next char in text
+        :raise: ParseError if any of the specified char (i.e. if chars != None) matched
+        :return: Matched char
+        """
         if self.pos >= self.len:
             raise ParseError(
                 self.pos + 1,
@@ -96,7 +116,13 @@ class Parser:
             next_char
         )
 
-    def keyword(self, *keywords):
+    def keyword(self, *keywords: str):
+        """
+        Matches specific keywords
+        :param keywords: Keywords to match
+        :raise: ParseError if any of the specified keywords matched
+        :return: The first matched keyword
+        """
         if self.pos >= self.len:
             raise ParseError(
                 self.pos + 1,
@@ -121,7 +147,14 @@ class Parser:
             self.text[self.pos + 1],
         )
 
-    def match(self, *rules):
+    def match(self, *rules: str):
+        """
+        Matches specific rules which name must be implemented as a method in corresponding parser. A rule does not match
+        if its method raises ParseError
+        :param rules: Rules to match
+        :raise: ParseError if any of the specified rules matched
+        :return: The first matched rule method's result
+        """
         last_error_pos = -1
         last_exception = None
         last_error_rules = []
@@ -129,8 +162,8 @@ class Parser:
         for rule in rules:
             initial_pos = self.pos
             try:
-                rv = getattr(self, rule)()
-                return rv
+                result = getattr(self, rule)()
+                return result
             except ParseError as e:
                 self.pos = initial_pos
 
@@ -153,31 +186,35 @@ class Parser:
                 self.text[last_error_pos]
             )
 
-    def maybe_char(self, chars=None):
+    def maybe_char(self, chars: Optional[str] = None) -> Optional[str]:
+        """
+        Like char() but returns None instead of raising ParseError
+        :param chars: Chars to match. If it is None, it will return the next char in text
+        :return: Char if matched, None otherwise
+        """
         try:
             return self.char(chars)
         except ParseError:
             return None
 
-    def maybe_match(self, *rules):
+    def maybe_match(self, *rules: str) -> Optional[Any]:
+        """
+        Like match() but returns None instead of raising ParseError
+        :param rules: Rules to match
+        :return: Rule result if matched, None otherwise
+        """
         try:
             return self.match(*rules)
         except ParseError:
             return None
 
-    def maybe_keyword(self, *keywords):
+    def maybe_keyword(self, *keywords: str) -> Optional[str]:
+        """
+        Like keyword() but returns None instead of raising ParseError
+        :param keywords: Keywords to match
+        :return: Keyword if matched, None otherwise
+        """
         try:
             return self.keyword(*keywords)
         except ParseError:
             return None
-
-
-class Gura(Parser):
-    def start(self):
-        return self.expression()
-
-    def loads(self, content: str) -> Dict:
-        return None
-
-    def dumps(self, content: Dict) -> str:
-        return None
