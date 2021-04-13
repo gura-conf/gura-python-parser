@@ -43,6 +43,11 @@ class TestImportingGura(unittest.TestCase):
         parsed_data = self.__get_file_parsed_data('normal.ura')
         self.assertDictEqual(parsed_data, self.expected)
 
+    def test_with_variables(self):
+        """Tests importing from several files with a variable in import sentences"""
+        parsed_data = self.__get_file_parsed_data('with_variable.ura')
+        self.assertDictEqual(parsed_data, self.expected)
+
     def test_not_found_error(self):
         """Tests errors importing a non existing file"""
         with self.assertRaises(ValueError):

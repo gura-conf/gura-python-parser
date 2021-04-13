@@ -174,25 +174,61 @@ class GuraParser(Parser):
         """Matches import sentence"""
         self.keyword('import')
         self.match('ws')
-        # TODO: change basic_string for a new "quoted_string" which doesn't take scaping or variables into consideration
-        # TODO: or make possible the usage of variables inside an import sentence
-        file_to_import = self.match('basic_string')
+        file_to_import = self.match('quoted_string_with_var')
         self.match('ws')
         self.maybe_match('new_line')
         return MatchResult(MatchResultType.IMPORT, file_to_import)
 
+    def quoted_string_with_var(self) -> str:
+        """
+        Matches with a quoted string (with a single quotation mark) taking into consideration a variable inside it.
+        There is no special character escaping here
+        :return: Matched string
+        """
+        quote = self.keyword('"')
+        chars = []
+
+        while True:
+            char = self.char()
+
+            if char == quote:
+                break
+
+            # Computes variables values in string
+            if char == '$':
+                var_name = self.__get_var_name()
+                chars.append(self.__get_variable_value(var_name))
+            else:
+                chars.append(char)
+
+        return ''.join(chars)
+
+    def __get_var_name(self) -> str:
+        """
+        Gets a variable name char by char
+        :return: Variable name
+        """
+        var_name = ''
+        var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
+        while var_name_char is not None:
+            var_name += var_name_char
+            var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
+        return var_name
+
     def __compute_imports(self, parent_dir_path: Optional[str], imported_files: Set[str]) -> Set[str]:
         """
-        TODO: add docs
-        :param parent_dir_path:
-        :param imported_files:
-        :return:
+        Computes all the import sentences in Gura file taking into consideration relative paths to imported files
+        :param parent_dir_path: Current parent directory path to join with imported files
+        :param imported_files: Set with already imported files to raise an error in case of importing the same file
+        more than once
+        :return: Set with imported files after all the imports to reuse in the importation process of the imported
+        Gura files
         """
         files_to_import: List[Tuple[str, str]] = []
 
         # First, consumes all the import sentences to replace all of them
         while self.pos < self.len:
-            match_result: MatchResult = self.maybe_match('gura_import', 'useless_line')
+            match_result: MatchResult = self.maybe_match('gura_import', 'variable', 'useless_line')
             if match_result is None:
                 break
 
@@ -248,7 +284,6 @@ class GuraParser(Parser):
 
     def primitive_type(self):
         self.maybe_match('ws')
-        # return self.match('null', 'boolean', 'multiline_basic_string', 'basic_string', 'number', 'variable_value')
         return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value')
 
     def complex_type(self):
@@ -553,11 +588,7 @@ class GuraParser(Parser):
                     chars.append(escape_sequences.get(escape, char))
             # Computes variables values in string
             elif char == '$':
-                var_name = ''
-                var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
-                while var_name_char is not None:
-                    var_name += var_name_char
-                    var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
+                var_name = self.__get_var_name()
                 chars.append(self.__get_variable_value(var_name))
             else:
                 chars.append(char)
