@@ -110,8 +110,19 @@ class TestFullGura(unittest.TestCase):
             self.assertTrue(math.isnan(value))
 
     def test_dumps(self):
-        # string_data = self.parser.dumps(self.content)
-        pass
+        """Tests dumps method"""
+        parsed_data = self.__get_file_parsed_data('full.ura')
+        string_data = self.parser.dumps(parsed_data)
+        new_parsed_data = self.parser.parse(string_data)
+        self.assertDictEqual(new_parsed_data, self.expected)
+
+    def test_dumps_nan(self):
+        """Tests dumps method with NaNs values"""
+        parsed_data_nan = self.__get_file_parsed_data('nan.ura')
+        string_data_nan = self.parser.dumps(parsed_data_nan)
+        new_parsed_data_nan = self.parser.parse(string_data_nan)
+        for value in new_parsed_data_nan.values():
+            self.assertTrue(math.isnan(value))
 
 
 if __name__ == '__main__':

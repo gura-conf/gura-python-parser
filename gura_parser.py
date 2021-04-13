@@ -621,6 +621,45 @@ class GuraParser(Parser):
 
         return ''.join(chars)
 
+    def __get_value_for_string(self, indentation_level, value) -> str:
+        """
+        Takes a value, check its type and returns its correct value
+        :param indentation_level: Current indentation level to compute indentation in string
+        :param value: Value retrieved from dict to transform in string
+        :return: String representation of the received value
+        """
+        value_type = type(value)
+        if value_type == str:
+            return f'"{value}"'
+        if value_type in (int, float):
+            return str(value)
+        if value_type == bool:
+            return 'true' if value is True else 'false'
+        if value_type == dict:
+            return '\n' + self.dumps(value, indentation_level + 1)
+        if value_type == list:
+            list_values = [
+                self.__get_value_for_string(indentation_level, list_elem)
+                for list_elem in value
+            ]
+            return '[' + ', '.join(list_values) + ']'
+        return ''
+
+    def dumps(self, data: Dict, indentation_level: int = 0) -> str:
+        """
+        Generates a Gura string from a dictionary (aka. stringify)
+        :param data: Dictionary data to stringify
+        :param indentation_level: Current indentation level
+        :return: String with the data in Gura format
+        """
+        result = ''
+        for key, value in data.items():
+            indentation = ' ' * (indentation_level * 4)
+            result += f'{indentation}{key}: '
+            result += self.__get_value_for_string(indentation_level, value)
+            result += '\n'
+        return result
+
 
 if __name__ == '__main__':
     from pprint import pprint
@@ -633,5 +672,6 @@ if __name__ == '__main__':
             parsed = parser.parse(file.read())
             pprint(parsed)
             print(parsed)
+            print(parser.dumps(parsed))
     except ParseError as e:
         print('Error: ', str(e))
