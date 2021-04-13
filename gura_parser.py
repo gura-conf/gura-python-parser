@@ -139,11 +139,8 @@ class GuraParser(Parser):
 
     def ws(self):
         """Matches white spaces (blanks and tabs)"""
-        # TODO: refactor
-        while True:
-            blank = self.maybe_keyword(' ', '\t')
-            if blank is None:
-                break
+        while self.maybe_keyword(' ', '\t') is not None:
+            pass
 
     def eat_ws_and_new_lines(self):
         """Consumes all the whitespaces and new lines"""
