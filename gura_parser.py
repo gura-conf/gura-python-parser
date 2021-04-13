@@ -68,27 +68,39 @@ class GuraParser(Parser):
         self.indentation_levels = []
         self.imported_files = set()
 
-    def parse(self, text):
+    def parse(self, text: str) -> Dict:
+        """
+        Parses a text in Gura format
+        :param text: Text to be parsed
+        :raise: ParseError if the syntax of text is invalid
+        :return: Dict with all the parsed values
+        """
         self.__restart_params(text)
-
-        rv = self.start()
-
+        result = self.start()
         self.assert_end()
-        return rv if rv is not None else {}
+        return result if result is not None else {}
 
-    def __restart_params(self, text):
-        """Sets the params to start parsing from a specific text"""
+    def __restart_params(self, text: str):
+        """
+        Sets the params to start parsing from a specific text
+        :param text: Text to set as the internal text to be parsed
+        """
         self.text = text
         self.pos = -1
         self.line = 0
         self.len = len(text) - 1
 
     def new_line(self):
+        """Matches with a new line"""
         res = self.char('\f\v\r\n')
         if res is not None:
             self.line += 1
 
-    def comment(self):
+    def comment(self) -> MatchResult:
+        """
+        Matches with a comment
+        :return: MatchResult indicating the presence of a comment
+        """
         self.keyword('#')
         while self.pos < self.len:
             char = self.text[self.pos + 1]
@@ -96,13 +108,13 @@ class GuraParser(Parser):
             if char in '\f\v\r\n':
                 self.line += 1
                 break
-        print(f'Puntero en -> {self.text[self.pos]} (pos -> {self.pos})')
+
         return MatchResult(MatchResultType.COMMENT)
 
     def ws_with_indentation(self) -> int:
         """
         Matches with white spaces taking into consideration indentation levels
-        @:return Indentation level
+        :return Indentation level
         """
         current_indentation_level = 0
 
@@ -126,10 +138,7 @@ class GuraParser(Parser):
         return current_indentation_level
 
     def ws(self):
-        """
-        Matches white spaces and comments which start with '#'
-        :return:
-        """
+        """Matches white spaces (blanks and tabs)"""
         # TODO: refactor
         while True:
             blank = self.maybe_keyword(' ', '\t')
@@ -137,6 +146,7 @@ class GuraParser(Parser):
                 break
 
     def eat_ws_and_new_lines(self):
+        """Consumes all the whitespaces and new lines"""
         while self.maybe_char(' \f\v\r\n\t'):
             pass
 
@@ -269,25 +279,41 @@ class GuraParser(Parser):
             self.__restart_params(final_content + self.text[self.pos + 1:])
         return imported_files
 
-    def start(self):
+    def start(self) -> Dict:
+        """
+        Computes imports and matches the first expression of the file. Finally consumes all the useless lines
+        :return: Dict with all the extracted values from Gura string
+        """
         self.__compute_imports(parent_dir_path=None, imported_files=set())
-        rv = self.match('map')
+        result = self.match('expression')
         self.eat_ws_and_new_lines()
-        return rv
+        return result
 
-    def any_type(self):
-        rv = self.maybe_match('primitive_type')
-        if rv is not None:
-            return rv
+    def any_type(self) -> Any:
+        """
+        Matches with any primitive or complex type
+        :return: he corresponding matched value
+        """
+        result = self.maybe_match('primitive_type')
+        if result is not None:
+            return result
 
         return self.match('complex_type')
 
     def primitive_type(self):
+        """
+        Matches with a primitive value: null, bool, strings (all of the four kind of string), number or variables values
+        :return: The corresponding matched value
+        """
         self.maybe_match('ws')
         return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value')
 
-    def complex_type(self):
-        return self.match('list', 'map')
+    def complex_type(self) -> Tuple[List, Dict]:
+        """
+        Matches with a list or another complex expression
+        :return: List or Dict, depending the correct matching
+        """
+        return self.match('list', 'expression')
 
     def __get_variable_value(self, key: str) -> Any:
         """
@@ -306,32 +332,38 @@ class GuraParser(Parser):
         raise VariableNotDefinedError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
 
     def variable_value(self) -> Any:
-        """Matches with an already defined variable and gets its value"""
+        """
+        Matches with an already defined variable and gets its value
+        :return: Variable value
+        """
         self.keyword('$')
         key = self.match('unquoted_string')
         return self.__get_variable_value(key)
 
-    def variable(self):
-        """Matches with a variable definition"""
-        initial_pos = self.pos
+    def variable(self) -> MatchResult:
+        """
+        Matches with a variable definition
+        :raise: DuplicatedVariableError if the current variable has been already defined
+        :return: Match result indicating that a variable has been added
+        """
         self.keyword('$')
         key = self.match('key')
         self.maybe_match('ws')
         value = self.match('any_type')
 
         if key in self.variables:
-            raise DuplicatedVariableError(
-                self.pos + 1,
-                self.line,
-                f'Variable \'{key}\' has been already declared',
-            )
+            raise DuplicatedVariableError(f'Variable \'{key}\' has been already declared')
 
         # Store as variable
         self.variables[key] = value
         return MatchResult(MatchResultType.VARIABLE)
 
-    def list(self):
-        rv = []
+    def list(self) -> List:
+        """
+        Matches with a list
+        :return: Matched list
+        """
+        result = []
 
         self.maybe_match('ws')
         self.keyword('[')
@@ -345,11 +377,10 @@ class GuraParser(Parser):
                 continue
 
             item = self.maybe_match('any_type')
-            print('ITEM ', item)
             if item is None:
                 break
 
-            rv.append(item)
+            result.append(item)
 
             self.maybe_match('ws')
             if not self.maybe_keyword(','):
@@ -358,16 +389,21 @@ class GuraParser(Parser):
         self.maybe_match('ws')
         self.maybe_match('new_line')
         self.keyword(']')
-        return rv
+        return result
 
-    def useless_line(self):
+    def useless_line(self) -> MatchResult:
+        """
+        Matches with a useless line. A line is useless when it contains only whitespaces and/or a comment
+        finishing in a new line
+        :raise: ParseError if the line contains valid data
+        :return: MatchResult indicating the presence of a useless line
+        """
         self.match('ws')
         comment = self.maybe_match('comment')
         initial_line = self.line
         self.maybe_match('new_line')
         is_new_line = (self.line - initial_line) == 1
 
-        print(f'Comment -> {comment} | is_new_line -> {is_new_line}')
         if comment is None and not is_new_line:
             raise ParseError(
                 self.pos + 1,
@@ -377,8 +413,13 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.USELESS_LINE)
 
-    def map(self):
-        rv = {}
+    def expression(self) -> Dict:
+        """
+        Match any Gura expression
+        :raise: DuplicatedKeyError if any of the defined key was declared more than once
+        :return: Dict with Gura string data
+        """
+        result = {}
         while self.pos < self.len:
             item: MatchResult = self.maybe_match('variable', 'pair', 'useless_line')
 
@@ -388,15 +429,10 @@ class GuraParser(Parser):
             if item.result_type == MatchResultType.PAIR:
                 # It is a key/value pair
                 key, value = item.value
-                print(f"Pair obtenido '{item.value}'")
-                if key in rv:
-                    raise DuplicatedKeyError(
-                        self.pos + 1,
-                        self.line,
-                        f'The key \'{key}\' has been already defined',
-                    )
+                if key in result:
+                    raise DuplicatedKeyError(f'The key \'{key}\' has been already defined')
 
-                rv[key] = value
+                result[key] = value
 
             if self.maybe_keyword(']', ',') is not None:
                 # Breaks if it is the end of a list
@@ -404,16 +440,21 @@ class GuraParser(Parser):
                 self.pos -= 1
                 break
 
-        return rv if len(rv) > 0 else None
+        return result if len(result) > 0 else None
 
     def __remove_last_indentation_level(self):
         """Removes, if exists, the last indentation level"""
         if len(self.indentation_levels) > 0:
             self.indentation_levels.pop()
 
-    def key(self):
+    def key(self) -> str:
+        """
+        Matches with a key. A key is an unquoted string followed by a colon (:)
+        :raise: ParseError if key is not a valid string
+        :return: Matched key
+        """
         key = self.match('unquoted_string')
-        print(f"Key encontrada -> '{key}'")
+
         if type(key) is not str:
             raise ParseError(
                 self.pos + 1,
@@ -425,7 +466,12 @@ class GuraParser(Parser):
         self.keyword(':')
         return key
 
-    def pair(self):
+    def pair(self) -> Optional[MatchResult]:
+        """
+        Matches with a key-value pair taking into consideration the indentation levels
+        :return: Matched key-value pair. None if the indentation level is lower than the last one (to indicate the
+        ending of a parent object)
+        """
         pos_before_pair = self.pos
         current_indentation_level = self.maybe_match('ws_with_indentation')
 
@@ -436,13 +482,10 @@ class GuraParser(Parser):
         # Check indentation
         last_indentation_block: Optional[int] = None if len(self.indentation_levels) == 0 \
             else self.indentation_levels[-1]
-        print('current_indentation_level', current_indentation_level)
-        print('last_indentation_block', last_indentation_block)
+
         if last_indentation_block is None or current_indentation_level > last_indentation_block:
-            print(f'Agregando {current_indentation_level}')
             self.indentation_levels.append(current_indentation_level)
         elif current_indentation_level < last_indentation_block:
-            print(f'Eliminando {last_indentation_block}')
             self.__remove_last_indentation_level()
 
             # As the indentation was consumed, it is needed to return to line beginning to get the indentation level
@@ -451,7 +494,6 @@ class GuraParser(Parser):
             return None  # This breaks the parent loop
 
         value = self.match('any_type')
-        print(f"Value encontrado -> '{value}'")
         self.maybe_match('new_line')
 
         return MatchResult(MatchResultType.PAIR, (key, value))
@@ -485,17 +527,16 @@ class GuraParser(Parser):
 
             chars.append(char)
 
-        print("Retornando desde unquoted_string '" + ''.join(chars).rstrip(' \t') + "'")
         return ''.join(chars).rstrip(' \t')
 
-    def number(self) -> Union[float, int, str]:
+    def number(self) -> Union[float, int]:
         """
-        Parses a string checking if it is a number.
-        :return: Returns an int, a float or a string depending of type inference
+        Parses a string checking if it is a number and get its correct value
+        :raise: ParseError if the extracted string is not a valid number
+        :return: Returns an int or a float depending of type inference
         """
         number_type = int
 
-        print('number current char -> ', self.text[self.pos])
         chars = [self.char(ACCEPTABLE_NUMBER_CHARS)]
 
         while True:
@@ -508,12 +549,12 @@ class GuraParser(Parser):
 
             chars.append(char)
 
-        rv = ''.join(chars).rstrip(' \t')
+        result = ''.join(chars).rstrip(' \t')
 
         # Checks hexadecimal and octal format
-        prefix = rv[:2]
+        prefix = result[:2]
         if prefix in ['0x', '0o', '0b']:
-            without_prefix = rv[2:]
+            without_prefix = result[2:]
             if prefix == '0x':
                 base = 16
             elif prefix == '0o':
@@ -523,18 +564,17 @@ class GuraParser(Parser):
             return int(without_prefix, base)
 
         # Checks inf or NaN
-        last_three_chars = rv[-3:]
+        last_three_chars = result[-3:]
         if last_three_chars in ['inf', 'nan']:
-            return float(rv)
+            return float(result)
 
         try:
-            print(f'RV en number -> {rv}')
-            return number_type(rv)
+            return number_type(result)
         except ValueError:
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                f'\'{rv}\' is not a valid number',
+                f'\'{result}\' is not a valid number',
             )
 
     def basic_string(self) -> str:
@@ -583,7 +623,7 @@ class GuraParser(Parser):
                         code_point.append(self.char('0-9a-fA-F'))
                     hex_value = int(''.join(code_point), 16)
                     chars.append(chr(hex_value))
-                # Gets scaped char
+                # Gets escaped char
                 else:
                     chars.append(escape_sequences.get(escape, char))
             # Computes variables values in string
@@ -659,19 +699,3 @@ class GuraParser(Parser):
             result += self.__get_value_for_string(indentation_level, value)
             result += '\n'
         return result
-
-
-if __name__ == '__main__':
-    from pprint import pprint
-
-    parser = GuraParser()
-
-    try:
-        # pprint(parser.parse(sys.stdin.read()))
-        with open('tests/prueba.ura', 'r') as file:
-            parsed = parser.parse(file.read())
-            pprint(parsed)
-            print(parsed)
-            print(parser.dumps(parsed))
-    except ParseError as e:
-        print('Error: ', str(e))
