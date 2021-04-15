@@ -75,6 +75,7 @@ class TestImportingGura(unittest.TestCase):
             temp.write('from_temp: true')
         parsed_data = self.parser.parse(f'import "{temp.name}"\n'
                                         f'from_original: false')
+        tmp.close()
         self.assertDictEqual(parsed_data, {
             'from_temp': True,
             'from_original': False

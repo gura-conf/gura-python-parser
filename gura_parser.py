@@ -24,6 +24,11 @@ class VariableNotDefinedError(Exception):
     pass
 
 
+class InvalidIndentationError(Exception):
+    """Raises when indentation is invalid"""
+    pass
+
+
 # Number chars
 BASIC_NUMBERS_CHARS = '0-9'
 HEX_OCT_BIN = 'A-Fa-fxob'
@@ -41,6 +46,7 @@ class MatchResultType(Enum):
     COMMENT = auto()
     IMPORT = auto()
     VARIABLE = auto()
+    EXPRESSION = auto()
 
 
 class MatchResult:
@@ -150,7 +156,7 @@ class GuraParser(Parser):
     def __raise_indentation_char_error(self):
         """
         Raises a ParseError indicating that the indentation chars are inconsistent
-        :raise: ParseError
+        :raise: ParseError as described in method description
         """
         if self.indent_char == '\t':
             good_char = 'tabs'
@@ -158,7 +164,7 @@ class GuraParser(Parser):
         else:
             good_char = 'whitespace'
             received_char = 'tabs'
-        raise ValueError(f'Wrong indentation character! Using {good_char} but received {received_char}')
+        raise InvalidIndentationError(f'Wrong indentation character! Using {good_char} but received {received_char}')
 
     def get_text_with_imports(
         self,
@@ -282,9 +288,9 @@ class GuraParser(Parser):
         :return: Dict with all the extracted values from Gura string
         """
         self.__compute_imports(parent_dir_path=None, imported_files=set())
-        result = self.match('expression')
+        result: Optional[MatchResult] = self.match('expression')
         self.eat_ws_and_new_lines()
-        return result
+        return result.value[0] if result is not None else None
 
     def any_type(self) -> Any:
         """
@@ -305,7 +311,7 @@ class GuraParser(Parser):
         self.maybe_match('ws')
         return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value')
 
-    def complex_type(self) -> Tuple[List, Dict]:
+    def complex_type(self) -> Optional[Tuple[List, Dict]]:
         """
         Matches with a list or another complex expression
         :return: List or Dict, depending the correct matching
@@ -355,7 +361,7 @@ class GuraParser(Parser):
         self.variables[key] = value
         return MatchResult(MatchResultType.VARIABLE)
 
-    def list(self) -> List:
+    def list(self) -> MatchResult:
         """
         Matches with a list
         :return: Matched list
@@ -377,6 +383,8 @@ class GuraParser(Parser):
             if item is None:
                 break
 
+            if type(item) == MatchResult and item.result_type == MatchResultType.EXPRESSION:
+                item = item.value[0]
             result.append(item)
 
             self.maybe_match('ws')
@@ -410,13 +418,14 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.USELESS_LINE)
 
-    def expression(self) -> Dict:
+    def expression(self) -> MatchResult:
         """
         Match any Gura expression
         :raise: DuplicatedKeyError if any of the defined key was declared more than once
         :return: Dict with Gura string data
         """
         result = {}
+        indentation_level = 0
         while self.pos < self.len:
             item: MatchResult = self.maybe_match('variable', 'pair', 'useless_line')
 
@@ -425,11 +434,12 @@ class GuraParser(Parser):
 
             if item.result_type == MatchResultType.PAIR:
                 # It is a key/value pair
-                key, value = item.value
+                key, value, indentation = item.value
                 if key in result:
                     raise DuplicatedKeyError(f'The key \'{key}\' has been already defined')
 
                 result[key] = value
+                indentation_level = indentation
 
             if self.maybe_keyword(']', ',') is not None:
                 # Breaks if it is the end of a list
@@ -437,7 +447,7 @@ class GuraParser(Parser):
                 self.pos -= 1
                 break
 
-        return result if len(result) > 0 else None
+        return MatchResult(MatchResultType.EXPRESSION, (result, indentation_level)) if len(result) > 0 else None
 
     def __remove_last_indentation_level(self):
         """Removes, if exists, the last indentation level"""
@@ -477,8 +487,7 @@ class GuraParser(Parser):
         self.maybe_match('new_line')
 
         # Check indentation
-        last_indentation_block: Optional[int] = None if len(self.indentation_levels) == 0 \
-            else self.indentation_levels[-1]
+        last_indentation_block = self.__get_last_indentation_level()
 
         if last_indentation_block is None or current_indentation_level > last_indentation_block:
             self.indentation_levels.append(current_indentation_level)
@@ -490,10 +499,33 @@ class GuraParser(Parser):
             self.pos = pos_before_pair
             return None  # This breaks the parent loop
 
+        # If it is None then is an empty expression, and therefore invalid
         value = self.match('any_type')
+        if value is None:
+            raise ParseError(
+                self.pos + 1,
+                self.line,
+                f'Invalid pair',
+            )
+
+        if type(value) == MatchResult and value.result_type == MatchResultType.EXPRESSION:
+            dict_values, indentation_level = value.value
+            if indentation_level == current_indentation_level:
+                raise InvalidIndentationError(f'Wrong level for parent with key {key}')
+
+            value = dict_values
+
         self.maybe_match('new_line')
 
-        return MatchResult(MatchResultType.PAIR, (key, value))
+        return MatchResult(MatchResultType.PAIR, (key, value, current_indentation_level))
+
+    def __get_last_indentation_level(self) -> Optional[int]:
+        """
+        Gets the last indentation level or None in case it does not exist
+        :return: Last indentation level or None if it does not exist
+        """
+        return None if len(self.indentation_levels) == 0 \
+            else self.indentation_levels[-1]
 
     def null(self) -> None:
         """
