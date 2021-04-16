@@ -61,6 +61,7 @@ class MatchResult:
         return f'{self.result_type} -> {self.value}'
 
 
+# TODO: document in spec the standard errors
 class GuraParser(Parser):
     variables: Dict[str, Any]
     indent_char: Optional[str]
@@ -140,7 +141,6 @@ class GuraParser(Parser):
                 self.indent_char = blank
             current_indentation_level += 1
 
-        # TODO: add ParseError in case indentation is not divisible by 2
         return current_indentation_level
 
     def ws(self):
@@ -361,7 +361,7 @@ class GuraParser(Parser):
         self.variables[key] = value
         return MatchResult(MatchResultType.VARIABLE)
 
-    def list(self) -> MatchResult:
+    def list(self) -> List:
         """
         Matches with a list
         :return: Matched list
@@ -488,6 +488,10 @@ class GuraParser(Parser):
 
         # Check indentation
         last_indentation_block = self.__get_last_indentation_level()
+
+        # Check if indentation is divisible by 2
+        if current_indentation_level % 2 != 0:
+            raise InvalidIndentationError('Indentation block must be divisible by 2')
 
         if last_indentation_block is None or current_indentation_level > last_indentation_block:
             self.indentation_levels.append(current_indentation_level)
