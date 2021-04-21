@@ -43,9 +43,9 @@ print(parser.dumps(parsed_Gura))
 
 All kind of contribution is welcome! There are some TODOs to complete:
 
-- [] Add line and position in semantics errors (like InvalidIndentationError) messages.
-- [] Replace `getattr` in `match()` method for a tuple of Callable objects to make the code more typed.
-- [] Add some more tests.
+- [ ] Add line and position in semantics errors (like InvalidIndentationError) messages.
+- [ ] Replace `getattr` in `match()` method for a tuple of Callable objects to make the code more typed.
+- [ ] Add some more tests.
 
 
 ### Tests
