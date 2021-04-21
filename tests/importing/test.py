@@ -36,7 +36,7 @@ class TestImportingGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.parse(content)
+        return self.parser.loads(content)
 
     def test_normal(self):
         """Tests importing from several files"""
@@ -51,7 +51,7 @@ class TestImportingGura(unittest.TestCase):
     def test_not_found_error(self):
         """Tests errors importing a non existing file"""
         with self.assertRaises(ValueError):
-            self.parser.parse('import "invalid_file.ura"')
+            self.parser.loads('import "invalid_file.ura"')
 
     def test_duplicated_key_error(self):
         """Tests errors when redefines a key"""
@@ -73,7 +73,7 @@ class TestImportingGura(unittest.TestCase):
         tmp = tempfile.NamedTemporaryFile()
         with open(tmp.name, 'w') as temp:
             temp.write('from_temp: true')
-        parsed_data = self.parser.parse(f'import "{temp.name}"\n'
+        parsed_data = self.parser.loads(f'import "{temp.name}"\n'
                                         f'from_original: false')
         tmp.close()
         self.assertDictEqual(parsed_data, {

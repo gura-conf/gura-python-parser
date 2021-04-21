@@ -75,7 +75,7 @@ class GuraParser(Parser):
         self.indentation_levels = []
         self.imported_files = set()
 
-    def parse(self, text: str) -> Dict:
+    def loads(self, text: str) -> Dict:
         """
         Parses a text in Gura format
         :param text: Text to be parsed

@@ -63,7 +63,7 @@ class TestStringsGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.parse(content)
+        return self.parser.loads(content)
 
     def test_basic_strings(self):
         """Tests basic strings"""
@@ -84,7 +84,7 @@ class TestStringsGura(unittest.TestCase):
     def test_basic_strings_errors(self):
         """Tests errors in basic strings"""
         with self.assertRaises(VariableNotDefinedError):
-            self.parser.parse(f'test: "$false_var_{time.time_ns()}"')
+            self.parser.loads(f'test: "$false_var_{time.time_ns()}"')
 
     def test_literal_strings(self):
         """Tests literal strings"""

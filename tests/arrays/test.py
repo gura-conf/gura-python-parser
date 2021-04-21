@@ -56,7 +56,7 @@ class TestArraysGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.parse(content)
+        return self.parser.loads(content)
 
     def test_normal(self):
         """Tests all kind of arrays"""

@@ -22,21 +22,6 @@ class Parser:
     def __init__(self):
         self.cache = {}
 
-    def parse(self, text):
-        self.text = text
-        self.pos = -1
-        self.line = 0
-        self.len = len(text) - 1
-
-        result = self.start()
-
-        self.assert_end()
-        return result
-
-    def start(self):
-        """Subclass responsibility"""
-        pass
-
     def assert_end(self):
         """
         Checks that the parser has reached the end of file, otherwise it will raise a ParseError

@@ -35,7 +35,7 @@ class TestVariablesGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.parse(content)
+        return self.parser.loads(content)
 
     def test_normal(self):
         """Tests variables definition"""
@@ -45,12 +45,12 @@ class TestVariablesGura(unittest.TestCase):
     def test_with_error(self):
         """Tests errors in variables definition"""
         with self.assertRaises(VariableNotDefinedError):
-            self.parser.parse(f'test: $false_var_{time.time_ns()}')
+            self.parser.loads(f'test: $false_var_{time.time_ns()}')
 
     def test_with_duplicated(self):
         """Tests errors when a variable is defined more than once"""
         with self.assertRaises(DuplicatedVariableError):
-            self.parser.parse(f'$a_var: 14\n'
+            self.parser.loads(f'$a_var: 14\n'
                               f'$a_var: 14')
 
     def test_env_var(self):
@@ -61,7 +61,7 @@ class TestVariablesGura(unittest.TestCase):
         os.environ[env_var_name] = env_value
 
         # Parses and tests
-        parsed_data = self.parser.parse(f'test: ${env_var_name}')
+        parsed_data = self.parser.loads(f'test: ${env_var_name}')
         self.assertDictEqual(parsed_data, {"test": env_value})
         os.unsetenv(env_var_name)
 
