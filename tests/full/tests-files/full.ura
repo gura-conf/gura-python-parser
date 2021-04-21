@@ -85,9 +85,9 @@ $my_integer_var: 8080
 $my_bool_var: true
 
 my_server:
-  host: $my_string_var
-  port: $my_integer_var
-  native_auth: $my_bool_var
+    host: $my_string_var
+    port: $my_integer_var
+    native_auth: $my_bool_var
 
 $name: "Gura"
 gura_is_cool: "$name is cool"

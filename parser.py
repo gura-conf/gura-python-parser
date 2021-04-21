@@ -178,6 +178,7 @@ class Parser:
         if len(last_error_rules) == 1:
             raise last_exception
         else:
+            last_error_pos = min(len(self.text) - 1, last_error_pos)
             raise ParseError(
                 last_error_pos,
                 self.line,
