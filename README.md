@@ -40,7 +40,9 @@ print(gura.dumps(parsed_Gura))
 
 ## Contributing
 
-All kind of contribution is welcome! There are some TODOs to complete:
+All kind of contribution is welcome! **This is the first parser I've ever done.** So there are probably a lot of things that could be done in a better way.
+
+There are some TODOs in mind to complete:
 
 - [ ] Add line and position in semantics errors (like InvalidIndentationError) messages.
 - [ ] Replace `getattr` in `match()` method for a tuple of Callable objects to make the code more typed.
