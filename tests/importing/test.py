@@ -49,7 +49,7 @@ class TestImportingGura(unittest.TestCase):
 
     def test_not_found_error(self):
         """Tests errors importing a non existing file"""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(FileNotFoundError):
             gura.loads('import "invalid_file.ura"')
 
     def test_duplicated_key_error(self):
@@ -73,7 +73,7 @@ class TestImportingGura(unittest.TestCase):
         with open(tmp.name, 'w') as temp:
             temp.write('from_temp: true')
         parsed_data = gura.loads(f'import "{temp.name}"\n'
-                                        f'from_original: false')
+                                 f'from_original: false')
         tmp.close()
         self.assertDictEqual(parsed_data, {
             'from_temp': True,

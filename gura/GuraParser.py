@@ -61,7 +61,6 @@ class MatchResult:
         return f'{self.result_type} -> {self.value}'
 
 
-# TODO: document in spec the standard errors
 class GuraParser(Parser):
     variables: Dict[str, Any]
     indent_char: Optional[str]
@@ -260,23 +259,20 @@ class GuraParser(Parser):
                 if file_to_import in imported_files:
                     raise DuplicatedImportError(f'The file {file_to_import} has been already imported')
 
-                try:
-                    with open(file_to_import, 'r') as f:
-                        # Gets content considering imports
-                        content = f.read()
-                        aux_parser = GuraParser()
-                        parent_dir_path = os.path.dirname(file_to_import)
-                        content_with_import, imported_files = aux_parser.get_text_with_imports(
-                            content,
-                            parent_dir_path,
-                            imported_files
-                        )
-                        final_content += content_with_import + '\n'
-                        imported_files.add(file_to_import)
+                with open(file_to_import, 'r') as f:
+                    # Gets content considering imports
+                    content = f.read()
+                    aux_parser = GuraParser()
+                    parent_dir_path = os.path.dirname(file_to_import)
+                    content_with_import, imported_files = aux_parser.get_text_with_imports(
+                        content,
+                        parent_dir_path,
+                        imported_files
+                    )
+                    final_content += content_with_import + '\n'
+                    imported_files.add(file_to_import)
 
-                        self.imported_files.add(file_to_import)
-                except FileNotFoundError:
-                    raise ValueError(f'The file {file_to_import} does not exist')
+                    self.imported_files.add(file_to_import)
 
             # Sets as new text
             self.__restart_params(final_content + self.text[self.pos + 1:])
