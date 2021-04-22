@@ -1,6 +1,6 @@
 import os
 from typing import Dict, Any, Union, Optional, List, Set, Tuple
-from parser import ParseError, Parser
+from gura.Parser import ParseError, Parser
 from enum import Enum, auto
 
 
@@ -732,3 +732,22 @@ class GuraParser(Parser):
             result += self.__get_value_for_string(indentation_level, value)
             result += '\n'
         return result
+
+
+def loads(text: str) -> Dict:
+    """
+    Parses a text in Gura format
+    :param text: Text to be parsed
+    :raise: ParseError if the syntax of text is invalid
+    :return: Dict with all the parsed values
+    """
+    return GuraParser().loads(text)
+
+
+def dumps(data: Dict) -> str:
+    """
+    Generates a Gura string from a dictionary (aka. stringify)
+    :param data: Dictionary data to stringify
+    :return: String with the data in Gura format
+    """
+    return GuraParser().dumps(data)

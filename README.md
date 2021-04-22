@@ -11,7 +11,7 @@ This repository contains the implementation of a [Gura][gura] format parser in P
 ## Usage
 
 ```python
-from gura_parser import GuraParser
+import gura
 
 gura_string = """
 # This is a Gura document.
@@ -28,14 +28,13 @@ hosts: [
 ]
 """
 
-parser = GuraParser()
-parsed_Gura = parser.loads(gura_string)
+parsed_Gura = gura.loads(gura_string)
 
 # Loads: transforms a Gura string into a dictionary
 print(parsed_Gura)  # {'title': 'Gura Example', 'an_object': {'username': 'Stephen', 'pass': 'Hawking'}, 'hosts': ['alpha', 'omega']}
 
 # Dumps: transforms a dictionary into a Gura string
-print(parser.dumps(parsed_Gura))
+print(gura.dumps(parsed_Gura))
 ```
 
 

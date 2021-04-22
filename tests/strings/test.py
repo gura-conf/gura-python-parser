@@ -1,13 +1,13 @@
 import time
 import unittest
 from typing import Dict
-from gura_parser import GuraParser, VariableNotDefinedError
+import gura
+from gura import VariableNotDefinedError
 import os
 
 
 class TestStringsGura(unittest.TestCase):
     file_dir: str
-    parser: GuraParser
     expected_basic: Dict
     expected_multiline_basic: Dict
     expected_literal: Dict
@@ -15,7 +15,6 @@ class TestStringsGura(unittest.TestCase):
 
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
-        self.parser = GuraParser()
 
         self.expected_basic = {
             "str": "I'm a string. \"You can quote me\". Na\bme\tJos\u00E9\nLocation\tSF.",
@@ -63,7 +62,7 @@ class TestStringsGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.loads(content)
+        return gura.loads(content)
 
     def test_basic_strings(self):
         """Tests basic strings"""
@@ -84,7 +83,7 @@ class TestStringsGura(unittest.TestCase):
     def test_basic_strings_errors(self):
         """Tests errors in basic strings"""
         with self.assertRaises(VariableNotDefinedError):
-            self.parser.loads(f'test: "$false_var_{time.time_ns()}"')
+            gura.loads(f'test: "$false_var_{time.time_ns()}"')
 
     def test_literal_strings(self):
         """Tests literal strings"""

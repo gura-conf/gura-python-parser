@@ -1,18 +1,16 @@
 import unittest
 from typing import Dict
-from gura_parser import GuraParser
+import gura
 import os
 
 
 class TestUselessLinesGura(unittest.TestCase):
     file_dir: str
-    parser: GuraParser
     expected: Dict
     expected_object: Dict
 
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
-        self.parser = GuraParser()
 
         # All tests share the same content
         self.expected = {
@@ -81,7 +79,7 @@ class TestUselessLinesGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.loads(content)
+        return gura.loads(content)
 
     def test_without(self):
         """Tests without comments or blank lines"""

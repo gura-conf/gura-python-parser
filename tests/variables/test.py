@@ -1,18 +1,17 @@
 import unittest
 import time
 from typing import Dict
-from gura_parser import GuraParser, VariableNotDefinedError, DuplicatedVariableError
+import gura
+from gura import VariableNotDefinedError, DuplicatedVariableError
 import os
 
 
 class TestVariablesGura(unittest.TestCase):
     file_dir: str
-    parser: GuraParser
     expected: Dict
 
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
-        self.parser = GuraParser()
 
         # All tests share the same content
         self.expected = {
@@ -35,7 +34,7 @@ class TestVariablesGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.loads(content)
+        return gura.loads(content)
 
     def test_normal(self):
         """Tests variables definition"""
@@ -45,12 +44,12 @@ class TestVariablesGura(unittest.TestCase):
     def test_with_error(self):
         """Tests errors in variables definition"""
         with self.assertRaises(VariableNotDefinedError):
-            self.parser.loads(f'test: $false_var_{time.time_ns()}')
+            gura.loads(f'test: $false_var_{time.time_ns()}')
 
     def test_with_duplicated(self):
         """Tests errors when a variable is defined more than once"""
         with self.assertRaises(DuplicatedVariableError):
-            self.parser.loads(f'$a_var: 14\n'
+            gura.loads(f'$a_var: 14\n'
                               f'$a_var: 14')
 
     def test_env_var(self):
@@ -61,7 +60,7 @@ class TestVariablesGura(unittest.TestCase):
         os.environ[env_var_name] = env_value
 
         # Parses and tests
-        parsed_data = self.parser.loads(f'test: ${env_var_name}')
+        parsed_data = gura.loads(f'test: ${env_var_name}')
         self.assertDictEqual(parsed_data, {"test": env_value})
         os.unsetenv(env_var_name)
 

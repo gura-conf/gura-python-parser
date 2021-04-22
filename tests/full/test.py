@@ -1,18 +1,16 @@
 import unittest
 from typing import Dict
-from gura_parser import GuraParser
+import gura
 import math
 import os
 
 
 class TestFullGura(unittest.TestCase):
     file_dir: str
-    parser: GuraParser
     parsed_data: Dict
 
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
-        self.parser = GuraParser()
         self.expected = {
             "a_string": "test string",
             "int1": +99,
@@ -96,7 +94,7 @@ class TestFullGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.loads(content)
+        return gura.loads(content)
 
     def test_loads(self):
         """Test all the common cases except NaNs"""
@@ -112,15 +110,15 @@ class TestFullGura(unittest.TestCase):
     def test_dumps(self):
         """Tests dumps method"""
         parsed_data = self.__get_file_parsed_data('full.ura')
-        string_data = self.parser.dumps(parsed_data)
-        new_parsed_data = self.parser.loads(string_data)
+        string_data = gura.dumps(parsed_data)
+        new_parsed_data = gura.loads(string_data)
         self.assertDictEqual(new_parsed_data, self.expected)
 
     def test_dumps_nan(self):
         """Tests dumps method with NaNs values"""
         parsed_data_nan = self.__get_file_parsed_data('nan.ura')
-        string_data_nan = self.parser.dumps(parsed_data_nan)
-        new_parsed_data_nan = self.parser.loads(string_data_nan)
+        string_data_nan = gura.dumps(parsed_data_nan)
+        new_parsed_data_nan = gura.loads(string_data_nan)
         for value in new_parsed_data_nan.values():
             self.assertTrue(math.isnan(value))
 

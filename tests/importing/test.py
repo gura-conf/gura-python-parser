@@ -1,18 +1,17 @@
 import tempfile
 import unittest
 from typing import Dict
-from gura_parser import GuraParser, DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError
+import gura
+from gura import DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError
 import os
 
 
 class TestImportingGura(unittest.TestCase):
     file_dir: str
-    parser: GuraParser
     expected: Dict
 
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
-        self.parser = GuraParser()
 
         # All tests share the same content
         self.expected = {
@@ -36,7 +35,7 @@ class TestImportingGura(unittest.TestCase):
         full_test_path = os.path.join(self.file_dir, f'tests-files/{file_name}')
         with open(full_test_path, 'r') as file:
             content = file.read()
-        return self.parser.loads(content)
+        return gura.loads(content)
 
     def test_normal(self):
         """Tests importing from several files"""
@@ -51,7 +50,7 @@ class TestImportingGura(unittest.TestCase):
     def test_not_found_error(self):
         """Tests errors importing a non existing file"""
         with self.assertRaises(ValueError):
-            self.parser.loads('import "invalid_file.ura"')
+            gura.loads('import "invalid_file.ura"')
 
     def test_duplicated_key_error(self):
         """Tests errors when redefines a key"""
@@ -73,7 +72,7 @@ class TestImportingGura(unittest.TestCase):
         tmp = tempfile.NamedTemporaryFile()
         with open(tmp.name, 'w') as temp:
             temp.write('from_temp: true')
-        parsed_data = self.parser.loads(f'import "{temp.name}"\n'
+        parsed_data = gura.loads(f'import "{temp.name}"\n'
                                         f'from_original: false')
         tmp.close()
         self.assertDictEqual(parsed_data, {
