@@ -11,10 +11,11 @@ setup(
     license='MIT',
     description='A Gura format parser',
     long_description=readme_string,
+    long_description_content_type='text/markdown',
     author='JWare',
     author_email='jware.organization@gmail.com',
-    url='https://github.com/jware-solutions/gura-parser',
-    download_url='https://github.com/jware-solutions/gura-parser/archive/refs/tags/0.1.tar.gz',
+    url='https://github.com/jware-solutions/gura-python-parser',
+    download_url='https://github.com/jware-solutions/gura-python-parser/archive/refs/tags/0.1.tar.gz',
     keywords=['Gura', 'parser', 'loads', 'dumps', 'encode', 'decode'],
     install_requires=[
         'wheel'
