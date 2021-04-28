@@ -28,13 +28,19 @@ hosts: [
 ]
 """
 
-parsed_Gura = gura.loads(gura_string)
+parsed_gura = gura.loads(gura_string)
 
 # Loads: transforms a Gura string into a dictionary
-print(parsed_Gura)  # {'title': 'Gura Example', 'an_object': {'username': 'Stephen', 'pass': 'Hawking'}, 'hosts': ['alpha', 'omega']}
+print(parsed_gura)  # {'title': 'Gura Example', 'an_object': {'username': 'Stephen', 'pass': 'Hawking'}, 'hosts': ['alpha', 'omega']}
+
+# Iterate over structure
+print(f"Title -> {parsed_gura['title']}")
+
+for host in parsed_gura['hosts']:
+    print(f'Host -> {host}')
 
 # Dumps: transforms a dictionary into a Gura string
-print(gura.dumps(parsed_Gura))
+print(gura.dumps(parsed_gura))
 ```
 
 
