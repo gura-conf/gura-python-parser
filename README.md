@@ -28,14 +28,14 @@ hosts: [
 ]
 """
 
-parsed_gura = gura.loads(gura_string)
-
 # Loads: transforms a Gura string into a dictionary
+parsed_gura = gura.loads(gura_string)
 print(parsed_gura)  # {'title': 'Gura Example', 'an_object': {'username': 'Stephen', 'pass': 'Hawking'}, 'hosts': ['alpha', 'omega']}
 
-# Iterate over structure
+# Access a specific field
 print(f"Title -> {parsed_gura['title']}")
 
+# Iterate over structure
 for host in parsed_gura['hosts']:
     print(f'Host -> {host}')
 
@@ -46,13 +46,11 @@ print(gura.dumps(parsed_gura))
 
 ## Contributing
 
-All kind of contribution is welcome! **This is the first parser I've ever done.** So there are probably a lot of things that could be done in a better way.
+All kind of contribution is welcome! If you want to contribute just:
 
-There are some TODOs in mind to complete:
-
-- [ ] Add line and position in semantics errors (like InvalidIndentationError) messages.
-- [ ] Replace `getattr` in `match()` method for a tuple of Callable objects to make the code more typed.
-- [ ] Add some more tests.
+1. Fork this repository.
+1. Create a new branch and introduce there your new changes.
+1. Make a Pull Request!
 
 
 ### Tests
