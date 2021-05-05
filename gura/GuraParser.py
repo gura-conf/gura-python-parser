@@ -629,7 +629,8 @@ class GuraParser(Parser):
             'r': '\r',
             't': '\t',
             '"': '"',
-            '\\': '\\'
+            '\\': '\\',
+            '$': '$'
         }
 
         while True:

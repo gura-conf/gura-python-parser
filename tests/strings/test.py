@@ -16,10 +16,13 @@ class TestStringsGura(unittest.TestCase):
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
 
+        escaped_value = '$name is cool'
+
         self.expected_basic = {
             "str": "I'm a string. \"You can quote me\". Na\bme\tJos\u00E9\nLocation\tSF.",
             "str_2": "I'm a string. \"You can quote me\". Na\bme\tJos\U000000E9\nLocation\tSF.",
             "with_var": "Gura is cool",
+            "escaped_var": escaped_value,
             "with_env_var": "Gura is very cool"
         }
 
@@ -36,20 +39,23 @@ class TestStringsGura(unittest.TestCase):
             'str_4': 'Here are two quotation marks: "". Simple enough.',
             'str_5': 'Here are three quotation marks: """.',
             'str_6': 'Here are fifteen quotation marks: """"""""""""""".',
+            "escaped_var": escaped_value,
         }
 
         self.expected_literal = {
-            'quoted': 'Tom "Dubs" Preston-Werner',
+            'quoted': 'John "Dog lover" Wick',
             'regex': '<\\i\\c*\\s*>',
             'winpath': 'C:\\Users\\nodejs\\templates',
             'winpath2': '\\\\ServerX\\admin$\\system32\\',
-            'with_var': '$no_parsed variable!'
+            'with_var': '$no_parsed variable!',
+            "escaped_var": escaped_value
         }
 
         self.expected_multiline_literal = {
             'lines': 'The first newline is\ntrimmed in raw strings.\n   All other whitespace\n   is preserved.\n',
             'regex2': "I [dw]on't need \\d{2} apples",
-            'with_var': '$no_parsed variable!'
+            'with_var': '$no_parsed variable!',
+            "escaped_var": escaped_value
         }
         self.maxDiff = 4096
 

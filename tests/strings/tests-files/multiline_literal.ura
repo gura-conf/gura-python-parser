@@ -6,3 +6,4 @@ trimmed in raw strings.
    is preserved.
 '''
 with_var: '''$no_parsed variable!'''
+escaped_var: '''$name is cool'''

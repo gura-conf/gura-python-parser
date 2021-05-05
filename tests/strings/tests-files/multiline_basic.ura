@@ -32,3 +32,4 @@ str_with_backslash_2: """\
 str_4: """Here are two quotation marks: "". Simple enough."""
 str_5: """Here are three quotation marks: ""\"."""
 str_6: """Here are fifteen quotation marks: ""\"""\"""\"""\"""\"."""
+escaped_var: """\$name is cool"""
