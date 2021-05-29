@@ -41,6 +41,9 @@ sf3: -inf # Negative infinity
 bool1: true
 bool2: false
 
+# Digits as key
+1234: "1234"
+
 # Object
 services:
     nginx:
@@ -82,12 +85,11 @@ integers3: [
 
 $my_string_var: "127.0.0.1"
 $my_integer_var: 8080
-$my_bool_var: true
 
 my_server:
     host: $my_string_var
     port: $my_integer_var
-    native_auth: $my_bool_var
+    native_auth: true
 
 $name: "Gura"
 gura_is_cool: "$name is cool"

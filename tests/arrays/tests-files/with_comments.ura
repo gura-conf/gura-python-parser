@@ -42,3 +42,11 @@ integers_with_new_line: [
 
     3
 ]
+separator: [
+    a: 1
+    b: 2
+    # COMMENT
+  ,
+    a: 1,
+    b: 2
+]

@@ -29,10 +29,20 @@ class TestIndentationGura(unittest.TestCase):
         with self.assertRaises(InvalidIndentationError):
             self.__get_file_parsed_data('different_chars.ura')
 
-    def test_indentation_not_divisible_by_2(self):
-        """Tests raising an error when indentation is not divisible by 2"""
+    def test_indentation_not_divisible_by_4(self):
+        """Tests raising an error when indentation is not divisible by 4"""
         with self.assertRaises(InvalidIndentationError):
-            self.__get_file_parsed_data('not_divisible_by_2.ura')
+            self.__get_file_parsed_data('not_divisible_by_4.ura')
+
+    def test_indentation_non_consecutive_blocks(self):
+        """Tests raising an error when two levels of an object are not separated by only 4 spaces of difference"""
+        with self.assertRaises(InvalidIndentationError):
+            self.__get_file_parsed_data('more_than_4_difference.ura')
+
+    def test_indentation_with_tabs(self):
+        """Tests raising an error when tab character is used as indentation"""
+        with self.assertRaises(InvalidIndentationError):
+            self.__get_file_parsed_data('with_tabs.ura')
 
 
 if __name__ == '__main__':

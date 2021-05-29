@@ -1,8 +1,8 @@
 import tempfile
 import unittest
 from typing import Dict
+from gura import DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError, ParseError
 import gura
-from gura import DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError
 import os
 
 
@@ -79,6 +79,16 @@ class TestImportingGura(unittest.TestCase):
             'from_temp': True,
             'from_original': False
         })
+
+    def test_parse_error_1(self):
+        """Tests errors invalid importing sentence (there are blanks before import)"""
+        with self.assertRaises(ParseError):
+            gura.loads('  import "another_file.ura"')
+
+    def test_parse_error_2(self):
+        """Tests errors invalid importing sentence (there are more than one whitespace between import and file name)"""
+        with self.assertRaises(ParseError):
+            gura.loads('import   "another_file.ura"')
 
 
 if __name__ == '__main__':

@@ -37,7 +37,19 @@ INF_AND_NAN = 'in'  # The rest of the chars are defined in hex_oct_bin
 ACCEPTABLE_NUMBER_CHARS = BASIC_NUMBERS_CHARS + HEX_OCT_BIN + INF_AND_NAN + 'Ee+._-'
 
 # Acceptable chars for keys
-KEY_ACCEPTABLE_CHARS = '0-9A-Za-z_-'
+KEY_ACCEPTABLE_CHARS = '0-9A-Za-z_'
+
+# Special characters to be escaped
+ESCAPE_SEQUENCES = {
+    'b': '\b',
+    'f': '\f',
+    'n': '\n',
+    'r': '\r',
+    't': '\t',
+    '"': '"',
+    '\\': '\\',
+    '$': '$'
+}
 
 
 class MatchResultType(Enum):
@@ -63,14 +75,12 @@ class MatchResult:
 
 class GuraParser(Parser):
     variables: Dict[str, Any]
-    indent_char: Optional[str]
     indentation_levels: List[int]
     imported_files: Set[str]
 
     def __init__(self):
         super(GuraParser, self).__init__()
         self.variables = {}
-        self.indent_char = None
         self.indentation_levels = []
         self.imported_files = set()
 
@@ -130,14 +140,10 @@ class GuraParser(Parser):
                 # If it is not a blank or new line, returns from the method
                 break
 
-            # If it is the first case of indentation stores the indentation char
-            if self.indent_char is not None:
-                # If user uses different kind of indentation raises a parsing error
-                if blank != self.indent_char:
-                    self.__raise_indentation_char_error()
-            else:
-                # From now on this character will be used to indicate the indentation
-                self.indent_char = blank
+            # Tabs are not allowed
+            if blank == '\t':
+                raise InvalidIndentationError('Tabs are not allowed to define indentation blocks')
+
             current_indentation_level += 1
 
         return current_indentation_level
@@ -152,22 +158,9 @@ class GuraParser(Parser):
         while self.maybe_char(' \f\v\r\n\t'):
             pass
 
-    def __raise_indentation_char_error(self):
-        """
-        Raises a ParseError indicating that the indentation chars are inconsistent
-        :raise: ParseError as described in method description
-        """
-        if self.indent_char == '\t':
-            good_char = 'tabs'
-            received_char = 'whitespace'
-        else:
-            good_char = 'whitespace'
-            received_char = 'tabs'
-        raise InvalidIndentationError(f'Wrong indentation character! Using {good_char} but received {received_char}')
-
     def get_text_with_imports(
         self,
-        original_text,
+        original_text: str,
         parent_dir_path: str,
         imported_files: Set[str]
     ) -> Tuple[str, Set[str]]:
@@ -185,7 +178,7 @@ class GuraParser(Parser):
     def gura_import(self) -> MatchResult:
         """Matches import sentence"""
         self.keyword('import')
-        self.match('ws')
+        self.char(' ')
         file_to_import = self.match('quoted_string_with_var')
         self.match('ws')
         self.maybe_match('new_line')
@@ -291,7 +284,7 @@ class GuraParser(Parser):
     def any_type(self) -> Any:
         """
         Matches with any primitive or complex type
-        :return: he corresponding matched value
+        :return: The corresponding matched value
         """
         result = self.maybe_match('primitive_type')
         if result is not None:
@@ -318,8 +311,8 @@ class GuraParser(Parser):
         """
         Gets a variable value for a specific key from defined variables in file or as environment variable
         :param key: Key to retrieve
-        :return:
         :raise VariableNotDefinedError if the variable is not defined in file nor environment
+        :return: Variable value
         """
         if key in self.variables:
             return self.variables[key]
@@ -348,7 +341,7 @@ class GuraParser(Parser):
         self.keyword('$')
         key = self.match('key')
         self.maybe_match('ws')
-        value = self.match('any_type')
+        value = self.match('basic_string', 'literal_string', 'number', 'variable_value')
 
         if key in self.variables:
             raise DuplicatedVariableError(f'Variable \'{key}\' has been already declared')
@@ -367,9 +360,6 @@ class GuraParser(Parser):
         self.maybe_match('ws')
         self.keyword('[')
         while True:
-            self.maybe_match('ws')
-            self.maybe_match('new_line')
-
             # Discards useless lines between elements of array
             useless_line = self.maybe_match('useless_line')
             if useless_line is not None:
@@ -409,7 +399,7 @@ class GuraParser(Parser):
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                f'It is a valid line',
+                'It is a valid line'
             )
 
         return MatchResult(MatchResultType.USELESS_LINE)
@@ -462,7 +452,7 @@ class GuraParser(Parser):
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                'Expected string but got number',
+                'Expected string but got "%s"',
                 self.text[self.pos + 1]
             )
 
@@ -485,9 +475,9 @@ class GuraParser(Parser):
         # Check indentation
         last_indentation_block = self.__get_last_indentation_level()
 
-        # Check if indentation is divisible by 2
-        if current_indentation_level % 2 != 0:
-            raise InvalidIndentationError('Indentation block must be divisible by 2')
+        # Check if indentation is divisible by 4
+        if current_indentation_level % 4 != 0:
+            raise InvalidIndentationError(f'Indentation block ({current_indentation_level}) must be divisible by 4')
 
         if last_indentation_block is None or current_indentation_level > last_indentation_block:
             self.indentation_levels.append(current_indentation_level)
@@ -505,13 +495,16 @@ class GuraParser(Parser):
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                f'Invalid pair',
+                'Invalid pair'
             )
 
+        # Checks indentation against parent level
         if type(value) == MatchResult and value.result_type == MatchResultType.EXPRESSION:
             dict_values, indentation_level = value.value
             if indentation_level == current_indentation_level:
                 raise InvalidIndentationError(f'Wrong level for parent with key {key}')
+            elif abs(current_indentation_level - indentation_level) != 4:
+                raise InvalidIndentationError('Difference between different indentation levels must be 4')
 
             value = dict_values
 
@@ -538,7 +531,7 @@ class GuraParser(Parser):
     def boolean(self) -> bool:
         """
         Parses boolean values
-        :return: Boolean value
+        :return: Matched boolean value
         """
         return self.keyword('true', 'false') == 'true'
 
@@ -622,17 +615,6 @@ class GuraParser(Parser):
 
         chars = []
 
-        escape_sequences = {
-            'b': '\b',
-            'f': '\f',
-            'n': '\n',
-            'r': '\r',
-            't': '\t',
-            '"': '"',
-            '\\': '\\',
-            '$': '$'
-        }
-
         while True:
             closing_quote = self.maybe_keyword(quote)
             if closing_quote is not None:
@@ -655,7 +637,7 @@ class GuraParser(Parser):
                     chars.append(chr(hex_value))
                 # Gets escaped char
                 else:
-                    chars.append(escape_sequences.get(escape, char))
+                    chars.append(ESCAPE_SEQUENCES.get(escape, char))
             # Computes variables values in string
             elif char == '$':
                 var_name = self.__get_var_name()
@@ -691,7 +673,7 @@ class GuraParser(Parser):
 
         return ''.join(chars)
 
-    def __get_value_for_string(self, indentation_level, value) -> str:
+    def __get_value_for_string(self, indentation_level: int, value) -> str:
         """
         Takes a value, check its type and returns its correct value
         :param indentation_level: Current indentation level to compute indentation in string

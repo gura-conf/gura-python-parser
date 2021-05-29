@@ -11,6 +11,8 @@ class TestArraysGura(unittest.TestCase):
     def setUp(self):
         self.file_dir = os.path.dirname(os.path.abspath(__file__))
 
+        self.maxDiff = 1024
+
         # All tests share the same content
         self.expected = {
             "colors": ["red", "yellow", "green"],
@@ -42,6 +44,11 @@ class TestArraysGura(unittest.TestCase):
                 2,
                 [4, 5, 6],
                 3
+            ],
+            "separator": [
+                {"a": 1, "b": 2},
+                {"a": 1},
+                {"b": 2}
             ]
         }
 

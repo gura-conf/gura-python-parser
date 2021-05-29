@@ -2,7 +2,7 @@ import unittest
 import time
 from typing import Dict
 import gura
-from gura import VariableNotDefinedError, DuplicatedVariableError
+from gura import VariableNotDefinedError, DuplicatedVariableError, ParseError
 import os
 
 
@@ -50,7 +50,7 @@ class TestVariablesGura(unittest.TestCase):
         """Tests errors when a variable is defined more than once"""
         with self.assertRaises(DuplicatedVariableError):
             gura.loads(f'$a_var: 14\n'
-                              f'$a_var: 14')
+                       f'$a_var: 14')
 
     def test_env_var(self):
         """Tests using environment variables"""
@@ -63,6 +63,31 @@ class TestVariablesGura(unittest.TestCase):
         parsed_data = gura.loads(f'test: ${env_var_name}')
         self.assertDictEqual(parsed_data, {"test": env_value})
         os.unsetenv(env_var_name)
+
+    def test_invalid_variable(self):
+        """Tests invalid variable value type"""
+        with self.assertRaises(ParseError):
+            gura.loads('$invalid: true')
+
+    def test_invalid_variable_2(self):
+        """Tests invalid variable value type"""
+        with self.assertRaises(ParseError):
+            gura.loads('$invalid: false')
+
+    def test_invalid_variable_3(self):
+        """Tests invalid variable value type"""
+        with self.assertRaises(ParseError):
+            gura.loads('$invalid: null')
+
+    def test_invalid_variable_4(self):
+        """Tests invalid variable value type"""
+        with self.assertRaises(ParseError):
+            gura.loads('$invalid: [ 1, 2, 3]')
+
+    def test_invalid_variable_5(self):
+        """Tests invalid variable value type"""
+        with self.assertRaises(ParseError):
+            self.__get_file_parsed_data('invalid_variable_with_object.ura')
 
 
 if __name__ == '__main__':

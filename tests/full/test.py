@@ -1,5 +1,6 @@
-import unittest
 from typing import Dict
+from gura import ParseError
+import unittest
 import gura
 import math
 import os
@@ -39,6 +40,7 @@ class TestFullGura(unittest.TestCase):
             "sf3": -math.inf,
             "bool1": True,
             "bool2": False,
+            "1234": "1234",
             "services": {
                 "nginx": {
                     "host": "127.0.0.1",
@@ -97,12 +99,12 @@ class TestFullGura(unittest.TestCase):
         return gura.loads(content)
 
     def test_loads(self):
-        """Test all the common cases except NaNs"""
+        """Tests all the common cases except NaNs"""
         parsed_data = self.__get_file_parsed_data('full.ura')
         self.assertDictEqual(parsed_data, self.expected)
 
     def test_loads_nan(self):
-        """Test NaNs cases as they are an exceptional case"""
+        """Tests NaNs cases as they are an exceptional case"""
         parsed_data = self.__get_file_parsed_data('nan.ura')
         for value in parsed_data.values():
             self.assertTrue(math.isnan(value))
@@ -121,6 +123,31 @@ class TestFullGura(unittest.TestCase):
         new_parsed_data_nan = gura.loads(string_data_nan)
         for value in new_parsed_data_nan.values():
             self.assertTrue(math.isnan(value))
+
+    def test_empty(self):
+        """Tests empty Gura documents"""
+        parsed_data = gura.loads('')
+        self.assertDictEqual(parsed_data, {})
+
+    def test_empty_2(self):
+        """Tests empty Gura documents, even when some data is defined"""
+        parsed_data = gura.loads('$unused_var: 5')
+        self.assertDictEqual(parsed_data, {})
+
+    def test_invalid_key(self):
+        """Tests invalid key"""
+        with self.assertRaises(ParseError):
+            gura.loads('with.dot: 5')
+
+    def test_invalid_key_2(self):
+        """Tests invalid key"""
+        with self.assertRaises(ParseError):
+            gura.loads('"with_quotes": 5')
+
+    def test_invalid_key_3(self):
+        """Tests invalid key"""
+        with self.assertRaises(ParseError):
+            gura.loads('with-dashes: 5')
 
 
 if __name__ == '__main__':

@@ -29,3 +29,9 @@ integers_with_new_line: [
     2,
     3
 ]
+separator: [
+    a: 1
+    b: 2,
+    a: 1,
+    b: 2
+]
