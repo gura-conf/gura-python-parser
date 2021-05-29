@@ -1,6 +1,6 @@
-# Gura parser
+# Gura Python parser
 
-This repository contains the implementation of a [Gura][gura] format parser in Python.
+This repository contains the implementation of a [Gura][gura] (compliant with version 0.1.0) format parser in Python.
 
 
 ## Installation
