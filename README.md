@@ -61,6 +61,14 @@ To run all the tests: `python -m unittest`. More info in [official Unittest docs
 [gura]: https://github.com/jware-solutions/gura
 
 
+### Building
+
+1. Create a virtual environment: `python3 -m venv venv`
+1. Activate it: `source venv/bin/activate`
+1. Install some dependencies: `pip install -r requirements.txt`
+1. Clean and build `rm -rf ./dist/* && python3 setup.py sdist`
+
+
 ## Licence
 
 This repository is distributed under the terms of the MIT license.
