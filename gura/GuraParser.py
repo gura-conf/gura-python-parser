@@ -343,7 +343,7 @@ class GuraParser(Parser):
         self.keyword('$')
         key = self.match('key')
         self.maybe_match('ws')
-        match_result = self.match('basic_string', 'literal_string', 'number', 'variable_value')
+        match_result: MatchResult = self.match('basic_string', 'literal_string', 'number', 'variable_value')
 
         if key in self.variables:
             raise DuplicatedVariableError(f'Variable \'{key}\' has been already declared')
