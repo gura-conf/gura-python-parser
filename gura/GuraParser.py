@@ -59,6 +59,7 @@ class MatchResultType(Enum):
     IMPORT = auto()
     VARIABLE = auto()
     EXPRESSION = auto()
+    PRIMITIVE = auto()
 
 
 class MatchResult:
@@ -286,7 +287,7 @@ class GuraParser(Parser):
         Matches with any primitive or complex type
         :return: The corresponding matched value
         """
-        result = self.maybe_match('primitive_type')
+        result: Optional[MatchResult] = self.maybe_match('primitive_type')
         if result is not None:
             return result
 
@@ -323,14 +324,14 @@ class GuraParser(Parser):
 
         raise VariableNotDefinedError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
 
-    def variable_value(self) -> Any:
+    def variable_value(self) -> MatchResult:
         """
         Matches with an already defined variable and gets its value
         :return: Variable value
         """
         self.keyword('$')
         key = self.match('unquoted_string')
-        return self.__get_variable_value(key)
+        return MatchResult(MatchResultType.PRIMITIVE, self.__get_variable_value(key))
 
     def variable(self) -> MatchResult:
         """
@@ -341,13 +342,13 @@ class GuraParser(Parser):
         self.keyword('$')
         key = self.match('key')
         self.maybe_match('ws')
-        value = self.match('basic_string', 'literal_string', 'number', 'variable_value')
+        match_result = self.match('basic_string', 'literal_string', 'number', 'variable_value')
 
         if key in self.variables:
             raise DuplicatedVariableError(f'Variable \'{key}\' has been already declared')
 
         # Store as variable
-        self.variables[key] = value
+        self.variables[key] = match_result.value
         return MatchResult(MatchResultType.VARIABLE)
 
     def list(self) -> List:
@@ -369,8 +370,11 @@ class GuraParser(Parser):
             if item is None:
                 break
 
-            if type(item) == MatchResult and item.result_type == MatchResultType.EXPRESSION:
-                item = item.value[0]
+            if type(item) == MatchResult:
+                if item.result_type == MatchResultType.EXPRESSION:
+                    item = item.value[0]
+                else:
+                    item = item.value
             result.append(item)
 
             self.maybe_match('ws')
@@ -490,8 +494,8 @@ class GuraParser(Parser):
             return None  # This breaks the parent loop
 
         # If it is None then is an empty expression, and therefore invalid
-        value = self.match('any_type')
-        if value is None:
+        result = self.match('any_type')
+        if result is None:
             raise ParseError(
                 self.pos + 1,
                 self.line,
@@ -499,18 +503,21 @@ class GuraParser(Parser):
             )
 
         # Checks indentation against parent level
-        if type(value) == MatchResult and value.result_type == MatchResultType.EXPRESSION:
-            dict_values, indentation_level = value.value
-            if indentation_level == current_indentation_level:
-                raise InvalidIndentationError(f'Wrong level for parent with key {key}')
-            elif abs(current_indentation_level - indentation_level) != 4:
-                raise InvalidIndentationError('Difference between different indentation levels must be 4')
+        if type(result) == MatchResult:
+            if result.result_type == MatchResultType.EXPRESSION:
+                dict_values, indentation_level = result.value
+                if indentation_level == current_indentation_level:
+                    raise InvalidIndentationError(f'Wrong level for parent with key {key}')
+                elif abs(current_indentation_level - indentation_level) != 4:
+                    raise InvalidIndentationError('Difference between different indentation levels must be 4')
 
-            value = dict_values
+                result = dict_values
+            else:
+                result = result.value
 
         self.maybe_match('new_line')
 
-        return MatchResult(MatchResultType.PAIR, (key, value, current_indentation_level))
+        return MatchResult(MatchResultType.PAIR, (key, result, current_indentation_level))
 
     def __get_last_indentation_level(self) -> Optional[int]:
         """
@@ -520,20 +527,21 @@ class GuraParser(Parser):
         return None if len(self.indentation_levels) == 0 \
             else self.indentation_levels[-1]
 
-    def null(self) -> None:
+    def null(self) -> MatchResult:
         """
         Consumes null keyword and return None
         :return None
         """
         self.keyword('null')
-        return None
+        return MatchResult(MatchResultType.PRIMITIVE, None)
 
-    def boolean(self) -> bool:
+    def boolean(self) -> MatchResult:
         """
         Parses boolean values
         :return: Matched boolean value
         """
-        return self.keyword('true', 'false') == 'true'
+        value = self.keyword('true', 'false') == 'true'
+        return MatchResult(MatchResultType.PRIMITIVE, value)
 
     def unquoted_string(self) -> str:
         """
@@ -551,7 +559,7 @@ class GuraParser(Parser):
 
         return ''.join(chars).rstrip(' \t')
 
-    def number(self) -> Union[float, int]:
+    def number(self) -> MatchResult:
         """
         Parses a string checking if it is a number and get its correct value
         :raise: ParseError if the extracted string is not a valid number
@@ -583,15 +591,15 @@ class GuraParser(Parser):
                 base = 8
             else:
                 base = 2
-            return int(without_prefix, base)
+            return MatchResult(MatchResultType.PRIMITIVE, int(without_prefix, base))
 
         # Checks inf or NaN
         last_three_chars = result[-3:]
         if last_three_chars in ['inf', 'nan']:
-            return float(result)
+            return MatchResult(MatchResultType.PRIMITIVE, float(result))
 
         try:
-            return number_type(result)
+            return MatchResult(MatchResultType.PRIMITIVE, number_type(result))
         except ValueError:
             raise ParseError(
                 self.pos + 1,
@@ -599,7 +607,7 @@ class GuraParser(Parser):
                 f'\'{result}\' is not a valid number',
             )
 
-    def basic_string(self) -> str:
+    def basic_string(self) -> MatchResult:
         """
         Matches with a simple/multiline basic string
         :return: Matched string
@@ -645,9 +653,9 @@ class GuraParser(Parser):
             else:
                 chars.append(char)
 
-        return ''.join(chars)
+        return MatchResult(MatchResultType.PRIMITIVE, ''.join(chars))
 
-    def literal_string(self) -> str:
+    def literal_string(self) -> MatchResult:
         """
         Matches with a simple/multiline literal string
         :return: Matched string
@@ -671,7 +679,7 @@ class GuraParser(Parser):
             char = self.char()
             chars.append(char)
 
-        return ''.join(chars)
+        return MatchResult(MatchResultType.PRIMITIVE, ''.join(chars))
 
     def __get_value_for_string(self, indentation_level: int, value) -> str:
         """
@@ -680,6 +688,8 @@ class GuraParser(Parser):
         :param value: Value retrieved from dict to transform in string
         :return: String representation of the received value
         """
+        if value is None:
+            return 'null'
         value_type = type(value)
         if value_type == str:
             return f'"{value}"'

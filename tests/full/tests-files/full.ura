@@ -37,6 +37,9 @@ sf1: inf  # Positive infinity
 sf2: +inf # Positive infinity
 sf3: -inf # Negative infinity
 
+# Null
+null: null
+
 # Bool
 bool1: true
 bool2: false

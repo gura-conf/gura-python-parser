@@ -38,6 +38,7 @@ class TestFullGura(unittest.TestCase):
             "sf1": math.inf,
             "sf2": math.inf,
             "sf3": -math.inf,
+            "null": None,
             "bool1": True,
             "bool2": False,
             "1234": "1234",
