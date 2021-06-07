@@ -58,6 +58,7 @@ class MatchResultType(Enum):
     COMMENT = auto()
     IMPORT = auto()
     VARIABLE = auto()
+    LIST = auto()
     EXPRESSION = auto()
     PRIMITIVE = auto()
 
@@ -351,7 +352,7 @@ class GuraParser(Parser):
         self.variables[key] = match_result.value
         return MatchResult(MatchResultType.VARIABLE)
 
-    def list(self) -> List:
+    def list(self) -> MatchResult:
         """
         Matches with a list
         :return: Matched list
@@ -370,11 +371,10 @@ class GuraParser(Parser):
             if item is None:
                 break
 
-            if type(item) == MatchResult:
-                if item.result_type == MatchResultType.EXPRESSION:
-                    item = item.value[0]
-                else:
-                    item = item.value
+            if item.result_type == MatchResultType.EXPRESSION:
+                item = item.value[0]
+            else:
+                item = item.value
             result.append(item)
 
             self.maybe_match('ws')
@@ -384,7 +384,7 @@ class GuraParser(Parser):
         self.maybe_match('ws')
         self.maybe_match('new_line')
         self.keyword(']')
-        return result
+        return MatchResult(MatchResultType.LIST, result)
 
     def useless_line(self) -> MatchResult:
         """
@@ -503,17 +503,16 @@ class GuraParser(Parser):
             )
 
         # Checks indentation against parent level
-        if type(result) == MatchResult:
-            if result.result_type == MatchResultType.EXPRESSION:
-                dict_values, indentation_level = result.value
-                if indentation_level == current_indentation_level:
-                    raise InvalidIndentationError(f'Wrong level for parent with key {key}')
-                elif abs(current_indentation_level - indentation_level) != 4:
-                    raise InvalidIndentationError('Difference between different indentation levels must be 4')
+        if result.result_type == MatchResultType.EXPRESSION:
+            dict_values, indentation_level = result.value
+            if indentation_level == current_indentation_level:
+                raise InvalidIndentationError(f'Wrong level for parent with key {key}')
+            elif abs(current_indentation_level - indentation_level) != 4:
+                raise InvalidIndentationError('Difference between different indentation levels must be 4')
 
-                result = dict_values
-            else:
-                result = result.value
+            result = dict_values
+        else:
+            result = result.value
 
         self.maybe_match('new_line')
 
