@@ -58,7 +58,7 @@ All kind of contribution is welcome! If you want to contribute just:
 To run all the tests: `python -m unittest`. More info in [official Unittest docs][unittest-docs]
 
 [unittest-docs]: https://docs.python.org/3/library/unittest.html#module-unittest
-[gura]: https://github.com/jware-solutions/gura
+[gura]: https://github.com/gura-conf/gura
 
 
 ### Building
