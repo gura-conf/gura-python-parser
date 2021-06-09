@@ -52,6 +52,15 @@ class TestArraysGura(unittest.TestCase):
             ]
         }
 
+        self.expected_inside_object = {
+            "model": {
+                "columns": [
+                    ["var1", "str"],
+                    ["var2", "str"]
+                ]
+            }
+        }
+
     def __get_file_parsed_data(self, file_name) -> Dict:
         """
         Gets the content of a specific file parsed
@@ -72,6 +81,13 @@ class TestArraysGura(unittest.TestCase):
         """Tests all kind of arrays with comments between elements"""
         parsed_data = self.__get_file_parsed_data('with_comments.ura')
         self.assertDictEqual(parsed_data, self.expected)
+
+    def test_array_in_object(self):
+        """Tests issue https://github.com/gura-conf/gura/issues/1"""
+        parsed_data = self.__get_file_parsed_data('array_in_object.ura')
+        self.assertDictEqual(parsed_data, self.expected_inside_object)
+        parsed_data = self.__get_file_parsed_data('array_in_object_trailing_comma.ura')
+        self.assertDictEqual(parsed_data, self.expected_inside_object)
 
 
 if __name__ == '__main__':

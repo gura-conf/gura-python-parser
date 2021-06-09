@@ -375,9 +375,11 @@ class GuraParser(Parser):
                 item = item.value[0]
             else:
                 item = item.value
+
             result.append(item)
 
             self.maybe_match('ws')
+            self.maybe_match('new_line')
             if not self.maybe_keyword(','):
                 break
 
