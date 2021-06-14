@@ -96,9 +96,7 @@ class Parser:
         raise ParseError(
             self.pos + 1,
             self.line,
-            'Expected %s but got %s',
-            'character' if chars is None else '[%s]' % chars,
-            next_char
+            'Expected [%s] but got %s' % (chars, next_char)
         )
 
     def keyword(self, *keywords: str):
