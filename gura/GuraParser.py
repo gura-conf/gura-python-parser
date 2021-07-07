@@ -759,7 +759,7 @@ def loads(text: str) -> Dict:
 
 def dumps(data: Dict) -> str:
     """
-    Generates a Gura string from a dictionary (aka. stringify)
+    Generates a Gura string from a dictionary (aka. Stringify)
     :param data: Dictionary data to stringify
     :return: String with the data in Gura format
     """
