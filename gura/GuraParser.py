@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Union, Optional, List, Set, Tuple
+from typing import Dict, Any, Union, Optional, List, Set, Tuple, cast
 from gura.Parser import ParseError, Parser
 from enum import Enum, auto
 
@@ -682,30 +682,72 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.PRIMITIVE, ''.join(chars))
 
-    def __get_value_for_string(self, indentation_level: int, value) -> str:
+    def __get_value_for_string(self, indentation_level: int, value, new_line = True) -> str:
         """
+        TODO: refactor!
         Takes a value, check its type and returns its correct value
         :param indentation_level: Current indentation level to compute indentation in string
         :param value: Value retrieved from dict to transform in string
         :return: String representation of the received value
         """
+        new_line_char = '\n' if new_line else ''
         if value is None:
-            return 'null'
+            return f'null{new_line_char}'
         value_type = type(value)
         if value_type == str:
-            return f'"{value}"'
+            # Uses literal string to prevent errors with special chars. Also escapes single quotes
+            value = cast(str, value)
+            escaped = value.replace("'", "\\'")
+            return f"'{escaped}'{new_line_char}"
         if value_type in (int, float):
-            return str(value)
+            return str(value) + new_line_char
         if value_type == bool:
-            return 'true' if value is True else 'false'
+            return ('true' if value is True else 'false') + new_line_char
         if value_type == dict:
-            return '\n' + self.dumps(value, indentation_level + 1)
+            result = ''
+            indentation = ' ' * (indentation_level * 4)
+            for key, dict_value in value.items():
+                result += f'{indentation}{key}:'
+                # If it is an object it does not add a whitespace after key
+                if type(dict_value) != dict:
+                    result += ' '
+
+                result += self.__get_value_for_string(indentation_level + 1, dict_value)
+
+            return '\n' + result
         if value_type == list:
-            list_values = [
-                self.__get_value_for_string(indentation_level, list_elem)
-                for list_elem in value
-            ]
-            return '[' + ', '.join(list_values) + ']'
+            list_values = []
+            at_least_one_obj = False
+            for list_elem in value:
+                is_obj = type(list_elem) == dict
+                str_value = self.__get_value_for_string(indentation_level, list_elem, new_line=is_obj)
+                if is_obj:
+                    str_value = str_value.rstrip('\n')
+                    at_least_one_obj = True
+                list_values.append(str_value)
+            list_str = '['
+
+            # If there is at least one object adds an indentation to every non object value
+            if at_least_one_obj:
+                list_str += '\n'
+                list_joined_str = ''
+                last_idx = len(list_values) - 1
+                for idx, elem in enumerate(list_values):
+                    elem_is_obj = elem.startswith('\n')
+                    if not elem_is_obj:
+                        elem = ' ' * 4 + elem
+                    else:
+                        elem = elem.lstrip('\n')
+                    list_joined_str += f'{elem}'
+                    if idx != last_idx:
+                        list_joined_str += ',\n'
+            else:
+                list_joined_str = ', '.join(list_values)
+            list_str += list_joined_str
+
+            if at_least_one_obj:
+                list_str += '\n'
+            return list_str + ']' + new_line_char
         return ''
 
     def dumps(self, data: Dict, indentation_level: int = 0) -> str:
@@ -715,13 +757,14 @@ class GuraParser(Parser):
         :param indentation_level: Current indentation level
         :return: String with the data in Gura format
         """
-        result = ''
-        for key, value in data.items():
-            indentation = ' ' * (indentation_level * 4)
-            result += f'{indentation}{key}: '
-            result += self.__get_value_for_string(indentation_level, value)
-            result += '\n'
-        return result
+        return self.__get_value_for_string(indentation_level, data)
+        # result = ''
+        # indentation = ' ' * (indentation_level * 4)
+        # for key, value in data.items():
+        #     result += f'{indentation}{key}: '
+        #     result += self.__get_value_for_string(indentation_level, value)
+        #     result += '\n'
+        # return result
 
 
 def loads(text: str) -> Dict:
