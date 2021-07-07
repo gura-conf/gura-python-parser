@@ -15,7 +15,7 @@ setup(
     author='JWare',
     author_email='jware.organization@gmail.com',
     url='https://github.com/gura-conf/gura-python-parser',
-    download_url='https://github.com/gura-conf/gura-python-parser/archive/refs/tags/1.1.0.tar.gz',
+    download_url='https://github.com/gura-conf/gura-python-parser/archive/refs/tags/1.2.0.tar.gz',
     keywords=['Gura', 'parser', 'loads', 'dumps', 'encode', 'decode'],
     install_requires=[
         'wheel'
