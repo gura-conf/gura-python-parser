@@ -672,9 +672,9 @@ class GuraParser(Parser):
         """
         Generates a Gura string from a dictionary (aka. stringify). Takes a value, check its type and returns its
         correct value in a recursive way
-        :param indentation_level: Current indentation level to compute indentation in string
         :param value: Value retrieved from dict to transform in string
-        :param new_line: If True, it print a new line at the end of some values. This prevents some issues when dumps
+        :param indentation_level: Current indentation level to compute indentation in string
+        :param new_line: If True, it prints a new line at the end of some values. This prevents some issues when dumps
         an object or array
         :return: String representation of the received value
         """
