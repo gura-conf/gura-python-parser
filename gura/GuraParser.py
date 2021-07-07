@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Union, Optional, List, Set, Tuple, cast
+from typing import Dict, Any, Optional, List, Set, Tuple, cast
 from gura.Parser import ParseError, Parser
 from enum import Enum, auto
 
@@ -682,12 +682,14 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.PRIMITIVE, ''.join(chars))
 
-    def __get_value_for_string(self, indentation_level: int, value, new_line = True) -> str:
+    def dumps(self, value, indentation_level: int, new_line: bool) -> str:
         """
-        TODO: refactor!
-        Takes a value, check its type and returns its correct value
+        Generates a Gura string from a dictionary (aka. stringify). Takes a value, check its type and returns its
+        correct value in a recursive way
         :param indentation_level: Current indentation level to compute indentation in string
         :param value: Value retrieved from dict to transform in string
+        :param new_line: If True, it print a new line at the end of some values. This prevents some issues when dumps
+        an object or array
         :return: String representation of the received value
         """
         new_line_char = '\n' if new_line else ''
@@ -712,18 +714,23 @@ class GuraParser(Parser):
                 if type(dict_value) != dict:
                     result += ' '
 
-                result += self.__get_value_for_string(indentation_level + 1, dict_value)
+                result += self.dumps(dict_value, indentation_level + 1, new_line=True)
 
             return '\n' + result
         if value_type == list:
+            # Lists are a special case: if it has an object, and indented representation must be returned. In case
+            # of primitive values or nested arrays, a plain representation is more appropriated
             list_values = []
             at_least_one_obj = False
             for list_elem in value:
                 is_obj = type(list_elem) == dict
-                str_value = self.__get_value_for_string(indentation_level, list_elem, new_line=is_obj)
+                str_value = self.dumps(list_elem, indentation_level, new_line=is_obj)
+
+                # Prevents multiples new lines
                 if is_obj:
                     str_value = str_value.rstrip('\n')
                     at_least_one_obj = True
+
                 list_values.append(str_value)
             list_str = '['
 
@@ -742,29 +749,16 @@ class GuraParser(Parser):
                     if idx != last_idx:
                         list_joined_str += ',\n'
             else:
+                # In case of primitive or nested arrays, just returns a plain representation
                 list_joined_str = ', '.join(list_values)
             list_str += list_joined_str
 
+            # Adds a last new line to append closing bracket
             if at_least_one_obj:
                 list_str += '\n'
             return list_str + ']' + new_line_char
-        return ''
 
-    def dumps(self, data: Dict, indentation_level: int = 0) -> str:
-        """
-        Generates a Gura string from a dictionary (aka. stringify)
-        :param data: Dictionary data to stringify
-        :param indentation_level: Current indentation level
-        :return: String with the data in Gura format
-        """
-        return self.__get_value_for_string(indentation_level, data)
-        # result = ''
-        # indentation = ' ' * (indentation_level * 4)
-        # for key, value in data.items():
-        #     result += f'{indentation}{key}: '
-        #     result += self.__get_value_for_string(indentation_level, value)
-        #     result += '\n'
-        # return result
+        return ''
 
 
 def loads(text: str) -> Dict:
@@ -783,4 +777,5 @@ def dumps(data: Dict) -> str:
     :param data: Dictionary data to stringify
     :return: String with the data in Gura format
     """
-    return GuraParser().dumps(data)
+    content = GuraParser().dumps(data, indentation_level=0, new_line=True)
+    return content.lstrip('\n').rstrip('\n')
