@@ -160,22 +160,16 @@ class GuraParser(Parser):
         while self.maybe_char(' \f\v\r\n\t'):
             pass
 
-    def get_text_with_imports(
-        self,
-        original_text: str,
-        parent_dir_path: str,
-        imported_files: Set[str]
-    ) -> Tuple[str, Set[str]]:
+    def get_text_with_imports(self, original_text: str, parent_dir_path: str) -> str:
         """
         Gets final text taking in consideration imports in original text
         :param original_text: Text to be parsed
         :param parent_dir_path: Parent directory to keep relative paths reference
-        :param imported_files: Set with imported files to check if any was imported more than once
         :return: Final text with imported files' text on it
         """
         self.__restart_params(original_text)
-        imported_files = self.__compute_imports(parent_dir_path, imported_files)
-        return self.text, imported_files
+        self.__compute_imports(parent_dir_path)
+        return self.text
 
     def gura_import(self) -> MatchResult:
         """Matches import sentence"""
@@ -222,13 +216,11 @@ class GuraParser(Parser):
             var_name_char = self.maybe_char(KEY_ACCEPTABLE_CHARS)
         return var_name
 
-    def __compute_imports(self, parent_dir_path: Optional[str], imported_files: Set[str]) -> Set[str]:
+    def __compute_imports(self, parent_dir_path: Optional[str]):
         """
         Computes all the import sentences in Gura file taking into consideration relative paths to imported files
         :param parent_dir_path: Current parent directory path to join with imported files
-        :param imported_files: Set with already imported files to raise an error in case of importing the same file
         more than once
-        :return: Set with imported files after all the imports to reuse in the importation process of the imported
         Gura files
         """
         files_to_import: List[Tuple[str, str]] = []
@@ -251,7 +243,7 @@ class GuraParser(Parser):
                     file_to_import = os.path.join(origin_file_path, file_to_import)
 
                 # Files can be imported only once. This prevents circular reference
-                if file_to_import in imported_files:
+                if file_to_import in self.imported_files:
                     raise DuplicatedImportError(f'The file {file_to_import} has been already imported')
 
                 with open(file_to_import, 'r') as f:
@@ -259,26 +251,20 @@ class GuraParser(Parser):
                     content = f.read()
                     aux_parser = GuraParser()
                     parent_dir_path = os.path.dirname(file_to_import)
-                    content_with_import, imported_files = aux_parser.get_text_with_imports(
-                        content,
-                        parent_dir_path,
-                        imported_files
-                    )
+                    content_with_import = aux_parser.get_text_with_imports(content, parent_dir_path)
                     final_content += content_with_import + '\n'
-                    imported_files.add(file_to_import)
 
                     self.imported_files.add(file_to_import)
 
             # Sets as new text
             self.__restart_params(final_content + self.text[self.pos + 1:])
-        return imported_files
 
     def start(self) -> Dict:
         """
         Computes imports and matches the first expression of the file. Finally consumes all the useless lines
         :return: Dict with all the extracted values from Gura string
         """
-        self.__compute_imports(parent_dir_path=None, imported_files=set())
+        self.__compute_imports(parent_dir_path=None)
         result: Optional[MatchResult] = self.match('expression')
         self.eat_ws_and_new_lines()
         return result.value[0] if result is not None else None
