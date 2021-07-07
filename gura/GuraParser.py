@@ -731,7 +731,7 @@ class GuraParser(Parser):
                         elem = ' ' * 4 + elem
                     else:
                         elem = elem.lstrip('\n')
-                    list_joined_str += f'{elem}'
+                    list_joined_str += elem
                     if idx != last_idx:
                         list_joined_str += ',\n'
             else:
