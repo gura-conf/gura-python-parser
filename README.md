@@ -52,13 +52,12 @@ All kind of contribution is welcome! If you want to contribute just:
 1. Create a new branch and introduce there your new changes.
 1. Make a Pull Request!
 
+Or you can join to our [community in Discord][discord-server]!
+
 
 ### Tests
 
 To run all the tests: `python -m unittest`. More info in [official Unittest docs][unittest-docs]
-
-[unittest-docs]: https://docs.python.org/3/library/unittest.html#module-unittest
-[gura]: https://github.com/gura-conf/gura
 
 
 ### Building
@@ -72,3 +71,7 @@ To run all the tests: `python -m unittest`. More info in [official Unittest docs
 ## Licence
 
 This repository is distributed under the terms of the MIT license.
+
+[unittest-docs]: https://docs.python.org/3/library/unittest.html#module-unittest
+[gura]: https://github.com/gura-conf/gura
+[discord-server]: https://discord.gg/Qs5AXPQpKd
