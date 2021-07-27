@@ -39,6 +39,7 @@ class TestFullGura(unittest.TestCase):
             "sf2": math.inf,
             "sf3": -math.inf,
             "null": None,
+            "empty_single": {},
             "bool1": True,
             "bool2": False,
             "1234": "1234",
@@ -81,6 +82,7 @@ class TestFullGura(unittest.TestCase):
             ],
             "my_server": {
                 "host": "127.0.0.1",
+                "empty_nested": {},
                 "port": 8080,
                 "native_auth": True
             },

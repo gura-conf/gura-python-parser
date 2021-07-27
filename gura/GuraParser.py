@@ -286,7 +286,8 @@ class GuraParser(Parser):
         :return: The corresponding matched value
         """
         self.maybe_match('ws')
-        return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value')
+        return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value',
+                          'empty_object')
 
     def complex_type(self) -> Optional[Tuple[List, Dict]]:
         """
@@ -516,11 +517,19 @@ class GuraParser(Parser):
 
     def null(self) -> MatchResult:
         """
-        Consumes null keyword and return None
+        Consumes 'null' keyword and returns None
         :return None
         """
         self.keyword('null')
         return MatchResult(MatchResultType.PRIMITIVE, None)
+
+    def empty_object(self) -> MatchResult:
+        """
+        Consumes 'empty' keyword and returns an empty object
+        :return Empty dict (which represents an object)
+        """
+        self.keyword('empty')
+        return MatchResult(MatchResultType.PRIMITIVE, {})
 
     def boolean(self) -> MatchResult:
         """
@@ -692,17 +701,21 @@ class GuraParser(Parser):
         if value_type == bool:
             return ('true' if value is True else 'false') + new_line_char
         if value_type == dict:
-            result = ''
-            indentation = ' ' * (indentation_level * 4)
-            for key, dict_value in value.items():
-                result += f'{indentation}{key}:'
-                # If it is an object it does not add a whitespace after key
-                if type(dict_value) != dict:
-                    result += ' '
+            if len(value) > 0:
+                result = ''
+                indentation = ' ' * (indentation_level * 4)
+                for key, dict_value in value.items():
+                    result += f'{indentation}{key}:'
+                    # If it is an object it does not add a whitespace after key
+                    if type(dict_value) != dict:
+                        result += ' '
 
-                result += self.dumps(dict_value, indentation_level + 1, new_line=True)
+                    result += self.dumps(dict_value, indentation_level + 1, new_line=True)
+                return '\n' + result
 
-            return '\n' + result
+            # Empty object
+            return ' empty\n'
+
         if value_type == list:
             # Lists are a special case: if it has an object, and indented representation must be returned. In case
             # of primitive values or nested arrays, a plain representation is more appropriated
