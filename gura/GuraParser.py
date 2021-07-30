@@ -463,7 +463,6 @@ class GuraParser(Parser):
 
         key = self.match('key')
         self.maybe_match('ws')
-        self.maybe_match('new_line')
 
         # Check indentation
         last_indentation_block = self.__get_last_indentation_level()
@@ -502,6 +501,11 @@ class GuraParser(Parser):
             result = dict_values
         else:
             result = result.value
+
+        # Prevents issues with indentation inside a list that break objects
+        if isinstance(result, list):
+            self.__remove_last_indentation_level()
+            self.indentation_levels.append(current_indentation_level)
 
         self.maybe_match('new_line')
 

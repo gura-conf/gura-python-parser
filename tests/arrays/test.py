@@ -61,6 +61,19 @@ class TestArraysGura(unittest.TestCase):
             }
         }
 
+        self.expected_trailing_comma = {
+            "foo": [
+                {
+                    "bar": {
+                        "baz": [
+                            {"far": "faz"}
+                        ]
+                    }
+                }
+            ],
+            "barbaz": "boo"
+        }
+
     def __get_file_parsed_data(self, file_name) -> Dict:
         """
         Gets the content of a specific file parsed
@@ -81,6 +94,12 @@ class TestArraysGura(unittest.TestCase):
         """Tests all kind of arrays with comments between elements"""
         parsed_data = self.__get_file_parsed_data('with_comments.ura')
         self.assertDictEqual(parsed_data, self.expected)
+
+    def test_bug_trailing_comma(self):
+        """Tests a bug that breaks arrays with a mandatory trailing comma. In this case the trailing comma is missing
+        and it should parse correctly"""
+        parsed_data = self.__get_file_parsed_data('bug_trailing_comma.ura')
+        self.assertDictEqual(parsed_data, self.expected_trailing_comma)
 
     def test_array_in_object(self):
         """Tests issue https://github.com/gura-conf/gura/issues/1"""
