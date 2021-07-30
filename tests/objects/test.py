@@ -81,6 +81,11 @@ class TestObjectsGura(unittest.TestCase):
         with self.assertRaises(InvalidIndentationError):
             self.__get_file_parsed_data('invalid_2.ura')
 
+    def test_invalid_3(self):
+        """Tests parsing error in invalid objects"""
+        with self.assertRaises(ParseError):
+            self.__get_file_parsed_data('invalid_3.ura')
+
 
 if __name__ == '__main__':
     unittest.main()
