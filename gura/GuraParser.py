@@ -696,8 +696,7 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.PRIMITIVE, ''.join(chars))
 
-    @staticmethod
-    def dumps(value: Dict) -> str:
+    def dumps(self, value: Dict) -> str:
         """
         Generates a Gura string from a dictionary (aka. stringify). Takes a value, check its type and returns its
         correct value in a recursive way
@@ -731,7 +730,7 @@ class GuraParser(Parser):
                 # If the value is an object, splits the stringified value by
                 # newline and indents each line before adding it to the result
                 if type(dict_value) == dict:
-                    stringified_value = dumps(dict_value).rstrip()
+                    stringified_value = self.dumps(dict_value).rstrip()
                     if len(dict_value) > 0:
                         result += '\n'
 
@@ -742,21 +741,21 @@ class GuraParser(Parser):
                         result += ' ' + stringified_value + '\n'
                 # Otherwise adds the stringified value
                 else:
-                    result += f' {dumps(dict_value)}\n'
+                    result += f' {self.dumps(dict_value)}\n'
 
             return result
         if value_type == list:
             should_multiline = any((type(e) == dict or type(e) == list) and len(e) > 0 for e in value)
 
             if not should_multiline:
-                stringify_values = list(map(dumps, value))
+                stringify_values = list(map(self.dumps, value))
                 return f'[{", ".join(stringify_values)}]'
 
             result = '['
 
             last_idx = len(value) - 1
             for idx, entry in enumerate(value):
-                stringified_value = dumps(entry).rstrip()
+                stringified_value = self.dumps(entry).rstrip()
 
                 result += '\n'
 
