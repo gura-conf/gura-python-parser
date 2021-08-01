@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional, List, Set, Tuple, cast
+from typing import Dict, Any, Optional, List, Set, Tuple
 from gura.Parser import ParseError, Parser
 from enum import Enum, auto
 
@@ -39,7 +39,7 @@ ACCEPTABLE_NUMBER_CHARS = BASIC_NUMBERS_CHARS + HEX_OCT_BIN + INF_AND_NAN + 'Ee+
 # Acceptable chars for keys
 KEY_ACCEPTABLE_CHARS = '0-9A-Za-z_'
 
-# Special characters to be escaped
+# Special characters to be escaped when parsing values
 ESCAPE_SEQUENCES = {
     'b': '\b',
     'f': '\f',
@@ -50,6 +50,21 @@ ESCAPE_SEQUENCES = {
     '\\': '\\',
     '$': '$'
 }
+
+# Sequences that need escaped when dumping string values
+SEQUENCES_TO_ESCAPE = {
+    '\\': '\\\\',
+    '\b': '\\b',
+    '\f': '\\f',
+    '\n': '\\n',
+    '\r': '\\r',
+    '\t': '\\t',
+    '"': '\\"',
+    '$': '\\$',
+}
+
+# Indentation of 4 spaces
+INDENT = '    '
 
 
 class MatchResultType(Enum):
@@ -681,87 +696,88 @@ class GuraParser(Parser):
 
         return MatchResult(MatchResultType.PRIMITIVE, ''.join(chars))
 
-    def dumps(self, value, indentation_level: int, new_line: bool) -> str:
+    @staticmethod
+    def dumps(value: Dict) -> str:
         """
         Generates a Gura string from a dictionary (aka. stringify). Takes a value, check its type and returns its
         correct value in a recursive way
         :param value: Value retrieved from dict to transform in string
-        :param indentation_level: Current indentation level to compute indentation in string
-        :param new_line: If True, it prints a new line at the end of some values. This prevents some issues when dumps
         an object or array
         :return: String representation of the received value
         """
-        new_line_char = '\n' if new_line else ''
         if value is None:
-            return f'null{new_line_char}'
+            return 'null'
+
         value_type = type(value)
         if value_type == str:
-            # Uses literal string to prevent errors with special chars. Also escapes single quotes
-            value = cast(str, value)
-            escaped = value.replace("'", "\\'")
-            return f"'{escaped}'{new_line_char}"
-        if value_type in (int, float):
-            return str(value) + new_line_char
+            result = ''
+
+            # Escapes everything that needs to be escaped
+            for char in value:
+                result += SEQUENCES_TO_ESCAPE.get(char, char)
+
+            return f'"{result}"'
         if value_type == bool:
-            return ('true' if value is True else 'false') + new_line_char
+            return 'true' if value is True else 'false'
+        if value_type in (int, float):
+            return str(value)
         if value_type == dict:
-            if len(value) > 0:
-                result = ''
-                indentation = ' ' * (indentation_level * 4)
-                for key, dict_value in value.items():
-                    result += f'{indentation}{key}:'
-                    # If it is an object it does not add a whitespace after key
-                    if type(dict_value) != dict:
-                        result += ' '
+            if len(value) == 0:
+                return 'empty'
+            result = ''
+            for key, dict_value in value.items():
+                result += f'{key}:'
 
-                    result += self.dumps(dict_value, indentation_level + 1, new_line=True)
-                return '\n' + result
+                # If the value is an object, splits the stringified value by
+                # newline and indents each line before adding it to the result
+                if type(dict_value) == dict:
+                    stringified_value = dumps(dict_value).rstrip()
+                    if len(dict_value) > 0:
+                        result += '\n'
 
-            # Empty object
-            return ' empty\n'
-
-        if value_type == list:
-            # Lists are a special case: if it has an object, and indented representation must be returned. In case
-            # of primitive values or nested arrays, a plain representation is more appropriated
-            list_values = []
-            at_least_one_obj = False
-            for list_elem in value:
-                is_obj = type(list_elem) == dict
-                str_value = self.dumps(list_elem, indentation_level, new_line=is_obj)
-
-                # Prevents multiples new lines
-                if is_obj:
-                    str_value = str_value.rstrip('\n')
-                    at_least_one_obj = True
-
-                list_values.append(str_value)
-            list_str = '['
-
-            # If there is at least one object adds an indentation to every non object value
-            if at_least_one_obj:
-                list_str += '\n'
-                list_joined_str = ''
-                last_idx = len(list_values) - 1
-                for idx, elem in enumerate(list_values):
-                    elem_is_obj = elem.startswith('\n')
-                    if not elem_is_obj:
-                        elem = ' ' * 4 + elem
+                        for line in stringified_value.split('\n'):
+                            result += INDENT + line + '\n'
                     else:
-                        elem = elem.lstrip('\n')
-                    list_joined_str += elem
-                    if idx != last_idx:
-                        list_joined_str += ',\n'
-            else:
-                # In case of primitive or nested arrays, just returns a plain representation
-                list_joined_str = ', '.join(list_values)
-            list_str += list_joined_str
+                        # Prevents indentation on empty objects
+                        result += ' ' + stringified_value + '\n'
+                # Otherwise adds the stringified value
+                else:
+                    result += f' {dumps(dict_value)}\n'
 
-            # Adds a last new line to append closing bracket
-            if at_least_one_obj:
-                list_str += '\n'
-            return list_str + ']' + new_line_char
+            return result
+        if value_type == list:
+            should_multiline = any((type(e) == dict or type(e) == list) and len(e) > 0 for e in value)
 
-        return ''
+            if not should_multiline:
+                stringify_values = list(map(dumps, value))
+                return f'[{", ".join(stringify_values)}]'
+
+            result = '['
+
+            last_idx = len(value) - 1
+            for idx, entry in enumerate(value):
+                stringified_value = dumps(entry).rstrip()
+
+                result += '\n'
+
+                # If the stringified value contains multiple lines, indents all
+                # of them and adds them all to the result
+                if '\n' in stringified_value:
+                    splitted = stringified_value.split('\n')
+                    splitted = map(lambda element: INDENT + element, splitted)
+                    result += '\n'.join(splitted)
+                else:
+                    # Otherwise indent the value and add to result
+                    result += INDENT + stringified_value
+
+                # Add a comma if this entry is not the final entry in the list
+                if idx < last_idx:
+                    result += ','
+
+            result += '\n]'
+            return result
+
+        raise TypeError()
 
 
 def loads(text: str) -> Dict:
@@ -780,5 +796,6 @@ def dumps(data: Dict) -> str:
     :param data: Dictionary data to stringify
     :return: String with the data in Gura format
     """
-    content = GuraParser().dumps(data, indentation_level=0, new_line=True)
+    # content = GuraParser().dumps(data, indentation_level=0, new_line=True)
+    content = GuraParser().dumps(data)
     return content.lstrip('\n').rstrip('\n')
