@@ -101,6 +101,13 @@ class TestStringsGura(unittest.TestCase):
         parsed_data = self.__get_file_parsed_data('multiline_literal.ura')
         self.assertDictEqual(parsed_data, self.expected_multiline_literal)
 
+    def test_invalid_escape_sentence(self):
+        """Tests invalid escape sentences interpreted as literals"""
+        parsed_data = gura.loads('foo: "\t\h\i\\i"')
+        self.assertDictEqual(parsed_data, {
+            'foo': '\t\\h\\i\\i'
+        })
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -658,9 +658,9 @@ class GuraParser(Parser):
                         code_point.append(self.char('0-9a-fA-F'))
                     hex_value = int(''.join(code_point), 16)
                     chars.append(chr(hex_value))
-                # Gets escaped char
+                # Gets escaped char or interprets as literal
                 else:
-                    chars.append(ESCAPE_SEQUENCES.get(escape, char))
+                    chars.append(ESCAPE_SEQUENCES.get(escape, char + escape))
             # Computes variables values in string
             elif char == '$':
                 var_name = self.__get_var_name()
