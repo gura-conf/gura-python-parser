@@ -68,7 +68,7 @@ To run all the tests: `python -m unittest`. More info in [official Unittest docs
 1. Clean and build `rm -rf ./dist/* && python3 setup.py sdist`
 
 
-## Licence
+## License
 
 This repository is distributed under the terms of the MIT license.
 
