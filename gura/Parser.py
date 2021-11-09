@@ -1,7 +1,8 @@
 from typing import Optional, Any
 
 
-class ParseError(Exception):
+class GuraError(Exception):
+    """General Gura error, with position and line"""
     def __init__(self, pos: int, line: int, msg: str, *args):
         self.pos = pos
         self.line = line
@@ -10,6 +11,10 @@ class ParseError(Exception):
 
     def __str__(self):
         return '%s at line %s position %s' % (self.msg % self.args, self.line, self.pos)
+
+
+class ParseError(GuraError):
+    pass
 
 
 class Parser:
@@ -165,8 +170,8 @@ class Parser:
             raise ParseError(
                 last_error_pos,
                 self.line,
-                'Expected %s but got %s',
-                ','.join(last_error_rules),
+                'Expected %s but got "%s"',
+                ', '.join(last_error_rules),
                 self.text[last_error_pos]
             )
 

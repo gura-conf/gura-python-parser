@@ -1,29 +1,33 @@
 import os
 from typing import Dict, Any, Optional, List, Set, Tuple
-from gura.Parser import ParseError, Parser
+from gura.Parser import ParseError, Parser, GuraError
 from enum import Enum, auto
 
 
-class DuplicatedImportError(Exception):
+class DuplicatedImportError(GuraError):
     """Raises when a file is imported more than once"""
     pass
 
 
+# TODO: make this class to extend GuraError
 class DuplicatedKeyError(Exception):
     """Raises when a key is defined more than once"""
     pass
 
 
+# TODO: make this class to extend GuraError
 class DuplicatedVariableError(Exception):
     """Raises when a variable is defined more than once"""
     pass
 
 
+# TODO: make this class to extend GuraError
 class VariableNotDefinedError(Exception):
     """Raises when a variable is not defined"""
     pass
 
 
+# TODO: make this class to extend GuraError
 class InvalidIndentationError(Exception):
     """Raises when indentation is invalid"""
     pass
@@ -159,7 +163,11 @@ class GuraParser(Parser):
 
             # Tabs are not allowed
             if blank == '\t':
-                raise InvalidIndentationError('Tabs are not allowed to define indentation blocks')
+                raise InvalidIndentationError(
+                    self.pos,
+                    self.line,
+                    'Tabs are not allowed to define indentation blocks'
+                )
 
             current_indentation_level += 1
 
@@ -258,8 +266,13 @@ class GuraParser(Parser):
                     file_to_import = os.path.join(origin_file_path, file_to_import)
 
                 # Files can be imported only once. This prevents circular reference
+                # TODO: check how to report well the position and line
                 if file_to_import in self.imported_files:
-                    raise DuplicatedImportError(f'The file {file_to_import} has been already imported')
+                    raise DuplicatedImportError(
+                        self.pos,
+                        self.line,
+                        f'The file {file_to_import} has been already imported'
+                    )
 
                 with open(file_to_import, 'r') as f:
                     # Gets content considering imports
@@ -301,8 +314,10 @@ class GuraParser(Parser):
         :return: The corresponding matched value
         """
         self.maybe_match('ws')
-        return self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value',
-                          'empty_object')
+        result = self.match('null', 'boolean', 'basic_string', 'literal_string', 'number', 'variable_value',
+                            'empty_object')
+        self.maybe_match('ws')
+        return result
 
     def complex_type(self) -> Optional[Tuple[List, Dict]]:
         """
@@ -421,7 +436,7 @@ class GuraParser(Parser):
         result = {}
         indentation_level = 0
         while self.pos < self.len:
-            item: MatchResult = self.maybe_match('variable', 'pair', 'useless_line')
+            item: MatchResult = self.match('variable', 'pair', 'useless_line')
 
             if item is None:
                 break
@@ -435,11 +450,15 @@ class GuraParser(Parser):
                 result[key] = value
                 indentation_level = indentation
 
+            initial_pos = self.pos
+            self.maybe_match('ws')
             if self.maybe_keyword(']', ',') is not None:
                 # Breaks if it is the end of a list
                 self.__remove_last_indentation_level()
                 self.pos -= 1
                 break
+            else:
+                self.pos = initial_pos
 
         return MatchResult(MatchResultType.EXPRESSION, (result, indentation_level)) if len(result) > 0 else None
 
