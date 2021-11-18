@@ -113,10 +113,10 @@ class Parser:
         """
         if self.pos >= self.len:
             raise ParseError(
-                self.pos + 1,
+                self.pos,
                 self.line,
-                'Expected %s but got end of string',
-                ','.join(keywords)
+                'Expected "%s" but got end of string',
+                ', '.join(keywords)
             )
 
         for keyword in keywords:
@@ -130,9 +130,9 @@ class Parser:
         raise ParseError(
             self.pos + 1,
             self.line,
-            'Expected %s but got %s',
-            ','.join(keywords),
-            self.text[self.pos + 1],
+            'Expected "%s" but got "%s"',
+            ', '.join(keywords),
+            self.text[self.pos],
         )
 
     def match(self, *rules: str):

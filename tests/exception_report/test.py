@@ -3,7 +3,6 @@ from typing import Dict
 from gura import DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError, ParseError, InvalidIndentationError
 import gura
 import os
-
 from gura.Parser import GuraError
 
 
@@ -54,11 +53,19 @@ class TestExceptionReportGura(unittest.TestCase):
 
     def test_line_and_pos_4(self):
         """Tests error position and line in some random line"""
-        self.__test_fail('parsing_error_4.ura', ParseError, error_pos=46, error_line=5)
+        self.__test_fail('parsing_error_4.ura', ParseError, error_pos=45, error_line=5)
 
-    # def test_line_and_pos_5(self):
-    #     """Tests error position and line when user uses tabs to indent"""
-    #     self.__test_fail('indentation_error_1.ura', InvalidIndentationError, error_pos=20, error_line=2)
+    def test_line_and_pos_indentation_1(self):
+        """Tests error position and line when user uses tabs to indent"""
+        self.__test_fail('indentation_error_1.ura', InvalidIndentationError, error_pos=20, error_line=2)
+
+    def test_line_and_pos_indentation_2(self):
+        """Tests error position and line when indentation is not divisible by 4"""
+        self.__test_fail('indentation_error_2.ura', InvalidIndentationError, error_pos=19, error_line=2)
+
+    def test_line_and_pos_indentation_3(self):
+        """Tests error position and line when pair indentation is the same as the the parent"""
+        self.__test_fail('indentation_error_3.ura', InvalidIndentationError, error_pos=18, error_line=2)
 
     # def test_line_and_pos_6(self):
     #     """Tests error position and line when imported files are duplicated"""

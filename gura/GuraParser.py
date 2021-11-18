@@ -27,8 +27,7 @@ class VariableNotDefinedError(Exception):
     pass
 
 
-# TODO: make this class to extend GuraError
-class InvalidIndentationError(Exception):
+class InvalidIndentationError(GuraError):
     """Raises when indentation is invalid"""
     pass
 
@@ -269,7 +268,7 @@ class GuraParser(Parser):
                 # TODO: check how to report well the position and line
                 if file_to_import in self.imported_files:
                     raise DuplicatedImportError(
-                        self.pos,
+                        self.pos + 1,
                         self.line,
                         f'The file {file_to_import} has been already imported'
                     )
@@ -479,7 +478,7 @@ class GuraParser(Parser):
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                'Expected string but got "%s"',
+                'Expected string for key but got "%s"',
                 self.text[self.pos + 1]
             )
 
@@ -493,6 +492,7 @@ class GuraParser(Parser):
         ending of a parent object)
         """
         pos_before_pair = self.pos
+        initial_pos = self.pos  # To report correct position in case of exception
         current_indentation_level = self.maybe_match('ws_with_indentation')
 
         key = self.match('key')
@@ -503,7 +503,15 @@ class GuraParser(Parser):
 
         # Check if indentation is divisible by 4
         if current_indentation_level % 4 != 0:
-            raise InvalidIndentationError(f'Indentation block ({current_indentation_level}) must be divisible by 4')
+            raise InvalidIndentationError(
+                initial_pos,
+                self.line,
+                f'Indentation block ({current_indentation_level}) must be divisible by 4'
+            )
+
+        # To report well the line number in case of exceptions
+        initial_pos = self.pos
+        initial_line = self.line
 
         if last_indentation_block is None or current_indentation_level > last_indentation_block:
             self.indentation_levels.append(current_indentation_level)
@@ -514,6 +522,10 @@ class GuraParser(Parser):
             # again in the previous matching. Otherwise, the other match would get indentation level = 0
             self.pos = pos_before_pair
             return None  # This breaks the parent loop
+
+        # To report well the line number in case of exceptions
+        initial_pos = self.pos
+        initial_line = self.line
 
         # If it is None then is an empty expression, and therefore invalid
         result = self.match('any_type')
@@ -526,11 +538,25 @@ class GuraParser(Parser):
 
         # Checks indentation against parent level
         if result.result_type == MatchResultType.EXPRESSION:
-            dict_values, indentation_level = result.value
-            if indentation_level == current_indentation_level:
-                raise InvalidIndentationError(f'Wrong level for parent with key {key}')
-            elif abs(current_indentation_level - indentation_level) != 4:
-                raise InvalidIndentationError('Difference between different indentation levels must be 4')
+            dict_values, child_indentation_level = result.value
+            if child_indentation_level == current_indentation_level:
+                # Considers the error position and line for the first child
+                exception_pos = initial_pos + 2 + child_indentation_level
+                exception_line = initial_line + 1
+                child_key = list(dict_values.keys())[0]
+                raise InvalidIndentationError(
+                    exception_pos,
+                    exception_line,
+                    f'Wrong indentation level for pair with key "{child_key}" '
+                    f'(parent "{key}" has the same indentation level)'
+                )
+            elif abs(current_indentation_level - child_indentation_level) != 4:
+                # TODO: check pos and line
+                raise InvalidIndentationError(
+                    self.pos + 1,
+                    self.line,
+                    'Difference between different indentation levels must be 4'
+                )
 
             result = dict_values
         else:
