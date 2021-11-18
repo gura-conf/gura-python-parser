@@ -71,6 +71,18 @@ class TestExceptionReportGura(unittest.TestCase):
         """Tests error position and line when pair indentation is more than 4 spaces from parent indentation level"""
         self.__test_fail('indentation_error_4.ura', InvalidIndentationError, error_pos=26, error_line=2)
 
+    def test_duplicated_key_1(self):
+        """Tests error position and line when user defines the same key twice"""
+        self.__test_fail('duplicated_key_error_1.ura', DuplicatedKeyError, error_pos=11, error_line=1)
+
+    def test_duplicated_key_2(self):
+        """Tests error position and line when user defines the same key twice but in other line than 0"""
+        self.__test_fail('duplicated_key_error_2.ura', DuplicatedKeyError, error_pos=21, error_line=2)
+
+    def test_duplicated_key_3(self):
+        """Tests error position and line when user defines the same key twice inside an object"""
+        self.__test_fail('duplicated_key_error_3.ura', DuplicatedKeyError, error_pos=37, error_line=3)
+
     # def test_line_and_pos_6(self):
     #     """Tests error position and line when imported files are duplicated"""
     #     self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=20, error_line=2)
