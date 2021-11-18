@@ -1,6 +1,7 @@
 import unittest
 from typing import Dict
-from gura import DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError, ParseError, InvalidIndentationError
+from gura import DuplicatedImportError, DuplicatedKeyError, DuplicatedVariableError, ParseError, \
+    InvalidIndentationError, VariableNotDefinedError
 import gura
 import os
 from gura.Parser import GuraError
@@ -94,6 +95,30 @@ class TestExceptionReportGura(unittest.TestCase):
     def test_duplicated_variable_3(self):
         """Tests error position and line when user defines the same variable twice but in other line than 0"""
         self.__test_fail('duplicated_variable_error_3.ura', DuplicatedVariableError, error_pos=37, error_line=5)
+
+    def test_missing_variable_1(self):
+        """Tests error position and line when user uses a non defined variable"""
+        self.__test_fail('missing_variable_error_1.ura', VariableNotDefinedError, error_pos=5, error_line=0)
+
+    def test_missing_variable_2(self):
+        """Tests error position and line when user uses a non defined variable but in other line than 0"""
+        self.__test_fail('missing_variable_error_2.ura', VariableNotDefinedError, error_pos=19, error_line=1)
+
+    def test_missing_variable_3(self):
+        """Tests error position and line when user uses a non defined variable but in other line than 0"""
+        self.__test_fail('missing_variable_error_3.ura', VariableNotDefinedError, error_pos=33, error_line=6)
+
+    def test_missing_variable_4(self):
+        """Tests error position and line when user uses a non defined variable inside a basic string"""
+        self.__test_fail('missing_variable_error_4.ura', VariableNotDefinedError, error_pos=17, error_line=0)
+
+    def test_missing_variable_5(self):
+        """Tests error position and line when user uses a non defined variable inside a multiline basic string"""
+        self.__test_fail('missing_variable_error_5.ura', VariableNotDefinedError, error_pos=24, error_line=1)
+
+    def test_missing_variable_6(self):
+        """Tests error position and line when user uses a non defined variable inside an import statement"""
+        self.__test_fail('missing_variable_error_6.ura', VariableNotDefinedError, error_pos=21, error_line=0)
 
     # def test_line_and_pos_6(self):
     #     """Tests error position and line when imported files are duplicated"""

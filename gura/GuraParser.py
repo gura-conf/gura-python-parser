@@ -19,8 +19,7 @@ class DuplicatedVariableError(GuraError):
     pass
 
 
-# TODO: make this class to extend GuraError
-class VariableNotDefinedError(Exception):
+class VariableNotDefinedError(GuraError):
     """Raises when a variable is not defined"""
     pass
 
@@ -217,8 +216,10 @@ class GuraParser(Parser):
 
             # Computes variables values in string
             if char == '$':
+                initial_pos = self.pos
+                initial_line = self.line
                 var_name = self.__get_var_name()
-                chars.append(self.__get_variable_value(var_name))
+                chars.append(self.__get_variable_value(var_name, initial_pos, initial_line))
             else:
                 chars.append(char)
 
@@ -323,10 +324,12 @@ class GuraParser(Parser):
         """
         return self.match('list', 'expression')
 
-    def __get_variable_value(self, key: str) -> Any:
+    def __get_variable_value(self, key: str, position: int, line: int) -> Any:
         """
         Gets a variable value for a specific key from defined variables in file or as environment variable
         :param key: Key to retrieve
+        :param position: Current position to report Exception (if needed)
+        :param line: Current line to report Exception (if needed)
         :raise VariableNotDefinedError if the variable is not defined in file nor environment
         :return: Variable value
         """
@@ -337,7 +340,11 @@ class GuraParser(Parser):
         if env_variable is not None:
             return env_variable
 
-        raise VariableNotDefinedError(f'Variable "{key}" is not defined in Gura nor as environment variable')
+        raise VariableNotDefinedError(
+            position,
+            line,
+            f'Variable "{key}" is not defined in Gura nor as environment variable'
+        )
 
     def variable_value(self) -> MatchResult:
         """
@@ -346,7 +353,9 @@ class GuraParser(Parser):
         """
         self.keyword('$')
         key = self.match('unquoted_string')
-        return MatchResult(MatchResultType.PRIMITIVE, self.__get_variable_value(key))
+        pos = self.pos - len(key)
+        line = self.line
+        return MatchResult(MatchResultType.PRIMITIVE, self.__get_variable_value(key, pos, line))
 
     def variable(self) -> MatchResult:
         """
@@ -702,10 +711,11 @@ class GuraParser(Parser):
 
         is_multiline = quote == '"""'
 
-        # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
+        # NOTE: A newline immediately following the opening delimiter will be trimmed. All other whitespace and
         # newline characters remain intact.
         if is_multiline:
-            self.maybe_char('\n')
+            if self.maybe_char('\n') is not None:
+                self.line += 1
 
         chars = []
 
@@ -734,8 +744,10 @@ class GuraParser(Parser):
                     chars.append(ESCAPE_SEQUENCES.get(escape, char + escape))
             # Computes variables values in string
             elif char == '$':
+                initial_pos = self.pos
+                initial_line = self.line
                 var_name = self.__get_var_name()
-                chars.append(self.__get_variable_value(var_name))
+                chars.append(self.__get_variable_value(var_name, initial_pos, initial_line))
             else:
                 chars.append(char)
 
@@ -753,7 +765,8 @@ class GuraParser(Parser):
         # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
         # newline characters remain intact.
         if is_multiline:
-            self.maybe_char('\n')
+            if self.maybe_char('\n') is not None:
+                self.line += 1
 
         chars = []
 
