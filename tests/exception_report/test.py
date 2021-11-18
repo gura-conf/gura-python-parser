@@ -83,6 +83,18 @@ class TestExceptionReportGura(unittest.TestCase):
         """Tests error position and line when user defines the same key twice inside an object"""
         self.__test_fail('duplicated_key_error_3.ura', DuplicatedKeyError, error_pos=37, error_line=3)
 
+    def test_duplicated_variable_1(self):
+        """Tests error position and line when user defines the same variable twice inside an object"""
+        self.__test_fail('duplicated_variable_error_1.ura', DuplicatedVariableError, error_pos=12, error_line=1)
+
+    def test_duplicated_variable_2(self):
+        """Tests error position and line when user defines the same variable twice but in other line than 0"""
+        self.__test_fail('duplicated_variable_error_2.ura', DuplicatedVariableError, error_pos=25, error_line=2)
+
+    def test_duplicated_variable_3(self):
+        """Tests error position and line when user defines the same variable twice but in other line than 0"""
+        self.__test_fail('duplicated_variable_error_3.ura', DuplicatedVariableError, error_pos=37, error_line=5)
+
     # def test_line_and_pos_6(self):
     #     """Tests error position and line when imported files are duplicated"""
     #     self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=20, error_line=2)

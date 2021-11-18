@@ -9,14 +9,12 @@ class DuplicatedImportError(GuraError):
     pass
 
 
-# TODO: make this class to extend GuraError
-class DuplicatedKeyError(Exception):
+class DuplicatedKeyError(GuraError):
     """Raises when a key is defined more than once"""
     pass
 
 
-# TODO: make this class to extend GuraError
-class DuplicatedVariableError(Exception):
+class DuplicatedVariableError(GuraError):
     """Raises when a variable is defined more than once"""
     pass
 
@@ -339,7 +337,7 @@ class GuraParser(Parser):
         if env_variable is not None:
             return env_variable
 
-        raise VariableNotDefinedError(f'Variable \'{key}\' is not defined in Gura nor as environment variable')
+        raise VariableNotDefinedError(f'Variable "{key}" is not defined in Gura nor as environment variable')
 
     def variable_value(self) -> MatchResult:
         """
@@ -356,13 +354,20 @@ class GuraParser(Parser):
         :raise: DuplicatedVariableError if the current variable has been already defined
         :return: Match result indicating that a variable has been added
         """
+        initial_pos = self.pos
+        initial_line = self.line
+
         self.keyword('$')
         key = self.match('key')
         self.maybe_match('ws')
         match_result: MatchResult = self.match('basic_string', 'literal_string', 'number', 'variable_value')
 
         if key in self.variables:
-            raise DuplicatedVariableError(f'Variable \'{key}\' has been already declared')
+            raise DuplicatedVariableError(
+                initial_pos + 1,
+                initial_line,
+                f'Variable "{key}" has been already declared'
+            )
 
         # Store as variable
         self.variables[key] = match_result.value
@@ -435,6 +440,9 @@ class GuraParser(Parser):
         result = {}
         indentation_level = 0
         while self.pos < self.len:
+            initial_pos = self.pos
+            initial_line = self.line
+
             item: MatchResult = self.match('variable', 'pair', 'useless_line')
 
             if item is None:
@@ -444,7 +452,11 @@ class GuraParser(Parser):
                 # It is a key/value pair
                 key, value, indentation = item.value
                 if key in result:
-                    raise DuplicatedKeyError(f'The key \'{key}\' has been already defined')
+                    raise DuplicatedKeyError(
+                        initial_pos + 1 + indentation,
+                        initial_line,
+                        f'The key "{key}" has been already defined'
+                    )
 
                 result[key] = value
                 indentation_level = indentation
@@ -678,7 +690,7 @@ class GuraParser(Parser):
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                f'\'{result}\' is not a valid number',
+                f'"{result}" is not a valid number',
             )
 
     def basic_string(self) -> MatchResult:
