@@ -67,6 +67,10 @@ class TestExceptionReportGura(unittest.TestCase):
         """Tests error position and line when pair indentation is the same as the the parent"""
         self.__test_fail('indentation_error_3.ura', InvalidIndentationError, error_pos=18, error_line=2)
 
+    def test_line_and_pos_indentation_4(self):
+        """Tests error position and line when pair indentation is more than 4 spaces from parent indentation level"""
+        self.__test_fail('indentation_error_4.ura', InvalidIndentationError, error_pos=26, error_line=2)
+
     # def test_line_and_pos_6(self):
     #     """Tests error position and line when imported files are duplicated"""
     #     self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=20, error_line=2)

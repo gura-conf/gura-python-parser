@@ -509,10 +509,6 @@ class GuraParser(Parser):
                 f'Indentation block ({current_indentation_level}) must be divisible by 4'
             )
 
-        # To report well the line number in case of exceptions
-        initial_pos = self.pos
-        initial_line = self.line
-
         if last_indentation_block is None or current_indentation_level > last_indentation_block:
             self.indentation_levels.append(current_indentation_level)
         elif current_indentation_level < last_indentation_block:
@@ -541,8 +537,8 @@ class GuraParser(Parser):
             dict_values, child_indentation_level = result.value
             if child_indentation_level == current_indentation_level:
                 # Considers the error position and line for the first child
-                exception_pos = initial_pos + 2 + child_indentation_level
-                exception_line = initial_line + 1
+                exception_line, exception_pos = self.__exception_data_with_initial_data(child_indentation_level,
+                                                                                        initial_line, initial_pos)
                 child_key = list(dict_values.keys())[0]
                 raise InvalidIndentationError(
                     exception_pos,
@@ -551,10 +547,11 @@ class GuraParser(Parser):
                     f'(parent "{key}" has the same indentation level)'
                 )
             elif abs(current_indentation_level - child_indentation_level) != 4:
-                # TODO: check pos and line
+                exception_line, exception_pos = self.__exception_data_with_initial_data(child_indentation_level,
+                                                                                        initial_line, initial_pos)
                 raise InvalidIndentationError(
-                    self.pos + 1,
-                    self.line,
+                    exception_pos,
+                    exception_line,
                     'Difference between different indentation levels must be 4'
                 )
 
@@ -570,6 +567,23 @@ class GuraParser(Parser):
         self.maybe_match('new_line')
 
         return MatchResult(MatchResultType.PAIR, (key, result, current_indentation_level))
+
+    @staticmethod
+    def __exception_data_with_initial_data(
+            child_indentation_level: int,
+            initial_line: int,
+            initial_pos: int
+    ) -> Tuple[int, int]:
+        """
+        Gets the Exception position and line considering indentation. Useful for InvalidIndentationError exceptions
+        :param child_indentation_level: Child pair indentation level
+        :param initial_line: Initial line
+        :param initial_pos: Initial position
+        :return: A tuple with correct position and line
+        """
+        exception_pos = initial_pos + 2 + child_indentation_level
+        exception_line = initial_line + 1
+        return exception_line, exception_pos
 
     def __get_last_indentation_level(self) -> Optional[int]:
         """
