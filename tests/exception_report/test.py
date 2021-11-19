@@ -42,91 +42,91 @@ class TestExceptionReportGura(unittest.TestCase):
 
     def test_line_and_pos_1(self):
         """Tests error position and line at beginning"""
-        self.__test_fail('parsing_error_1.ura', ParseError, error_pos=0, error_line=0)
+        self.__test_fail('parsing_error_1.ura', ParseError, error_pos=0, error_line=1)
 
     def test_line_and_pos_2(self):
         """Tests error position and line at end"""
-        self.__test_fail('parsing_error_2.ura', ParseError, error_pos=10, error_line=0)
+        self.__test_fail('parsing_error_2.ura', ParseError, error_pos=10, error_line=1)
 
     def test_line_and_pos_3(self):
         """Tests error position and line in some random line"""
-        self.__test_fail('parsing_error_3.ura', ParseError, error_pos=42, error_line=1)
+        self.__test_fail('parsing_error_3.ura', ParseError, error_pos=42, error_line=2)
 
     def test_line_and_pos_4(self):
         """Tests error position and line in some random line"""
-        self.__test_fail('parsing_error_4.ura', ParseError, error_pos=45, error_line=5)
+        self.__test_fail('parsing_error_4.ura', ParseError, error_pos=45, error_line=6)
 
     def test_line_and_pos_indentation_1(self):
         """Tests error position and line when user uses tabs to indent"""
-        self.__test_fail('indentation_error_1.ura', InvalidIndentationError, error_pos=20, error_line=2)
+        self.__test_fail('indentation_error_1.ura', InvalidIndentationError, error_pos=20, error_line=3)
 
     def test_line_and_pos_indentation_2(self):
         """Tests error position and line when indentation is not divisible by 4"""
-        self.__test_fail('indentation_error_2.ura', InvalidIndentationError, error_pos=19, error_line=2)
+        self.__test_fail('indentation_error_2.ura', InvalidIndentationError, error_pos=19, error_line=3)
 
     def test_line_and_pos_indentation_3(self):
         """Tests error position and line when pair indentation is the same as the the parent"""
-        self.__test_fail('indentation_error_3.ura', InvalidIndentationError, error_pos=18, error_line=2)
+        self.__test_fail('indentation_error_3.ura', InvalidIndentationError, error_pos=18, error_line=3)
 
     def test_line_and_pos_indentation_4(self):
         """Tests error position and line when pair indentation is more than 4 spaces from parent indentation level"""
-        self.__test_fail('indentation_error_4.ura', InvalidIndentationError, error_pos=26, error_line=2)
+        self.__test_fail('indentation_error_4.ura', InvalidIndentationError, error_pos=26, error_line=3)
 
     def test_duplicated_key_1(self):
         """Tests error position and line when user defines the same key twice"""
-        self.__test_fail('duplicated_key_error_1.ura', DuplicatedKeyError, error_pos=11, error_line=1)
+        self.__test_fail('duplicated_key_error_1.ura', DuplicatedKeyError, error_pos=11, error_line=2)
 
     def test_duplicated_key_2(self):
         """Tests error position and line when user defines the same key twice but in other line than 0"""
-        self.__test_fail('duplicated_key_error_2.ura', DuplicatedKeyError, error_pos=21, error_line=2)
+        self.__test_fail('duplicated_key_error_2.ura', DuplicatedKeyError, error_pos=21, error_line=3)
 
     def test_duplicated_key_3(self):
         """Tests error position and line when user defines the same key twice inside an object"""
-        self.__test_fail('duplicated_key_error_3.ura', DuplicatedKeyError, error_pos=37, error_line=3)
+        self.__test_fail('duplicated_key_error_3.ura', DuplicatedKeyError, error_pos=37, error_line=4)
 
     def test_duplicated_variable_1(self):
         """Tests error position and line when user defines the same variable twice inside an object"""
-        self.__test_fail('duplicated_variable_error_1.ura', DuplicatedVariableError, error_pos=12, error_line=1)
+        self.__test_fail('duplicated_variable_error_1.ura', DuplicatedVariableError, error_pos=12, error_line=2)
 
     def test_duplicated_variable_2(self):
         """Tests error position and line when user defines the same variable twice but in other line than 0"""
-        self.__test_fail('duplicated_variable_error_2.ura', DuplicatedVariableError, error_pos=25, error_line=2)
+        self.__test_fail('duplicated_variable_error_2.ura', DuplicatedVariableError, error_pos=25, error_line=3)
 
     def test_duplicated_variable_3(self):
         """Tests error position and line when user defines the same variable twice but in other line than 0"""
-        self.__test_fail('duplicated_variable_error_3.ura', DuplicatedVariableError, error_pos=37, error_line=5)
+        self.__test_fail('duplicated_variable_error_3.ura', DuplicatedVariableError, error_pos=37, error_line=6)
 
     def test_missing_variable_1(self):
         """Tests error position and line when user uses a non defined variable"""
-        self.__test_fail('missing_variable_error_1.ura', VariableNotDefinedError, error_pos=5, error_line=0)
+        self.__test_fail('missing_variable_error_1.ura', VariableNotDefinedError, error_pos=5, error_line=1)
 
     def test_missing_variable_2(self):
         """Tests error position and line when user uses a non defined variable but in other line than 0"""
-        self.__test_fail('missing_variable_error_2.ura', VariableNotDefinedError, error_pos=19, error_line=1)
+        self.__test_fail('missing_variable_error_2.ura', VariableNotDefinedError, error_pos=19, error_line=2)
 
     def test_missing_variable_3(self):
         """Tests error position and line when user uses a non defined variable but in other line than 0"""
-        self.__test_fail('missing_variable_error_3.ura', VariableNotDefinedError, error_pos=33, error_line=6)
+        self.__test_fail('missing_variable_error_3.ura', VariableNotDefinedError, error_pos=33, error_line=7)
 
     def test_missing_variable_4(self):
         """Tests error position and line when user uses a non defined variable inside a basic string"""
-        self.__test_fail('missing_variable_error_4.ura', VariableNotDefinedError, error_pos=17, error_line=0)
+        self.__test_fail('missing_variable_error_4.ura', VariableNotDefinedError, error_pos=17, error_line=1)
 
     def test_missing_variable_5(self):
         """Tests error position and line when user uses a non defined variable inside a multiline basic string"""
-        self.__test_fail('missing_variable_error_5.ura', VariableNotDefinedError, error_pos=24, error_line=1)
+        self.__test_fail('missing_variable_error_5.ura', VariableNotDefinedError, error_pos=24, error_line=2)
 
     def test_missing_variable_6(self):
         """Tests error position and line when user uses a non defined variable inside an import statement"""
-        self.__test_fail('missing_variable_error_6.ura', VariableNotDefinedError, error_pos=21, error_line=0)
+        self.__test_fail('missing_variable_error_6.ura', VariableNotDefinedError, error_pos=21, error_line=1)
 
     def test_duplicated_import_1(self):
         """Tests error position and line when imported files are duplicated"""
-        self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=74, error_line=1)
+        self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=74, error_line=2)
         
     def test_duplicated_import_2(self):
         """Tests error position and line when imported files are duplicated but in other line than 0"""
-        self.__test_fail('importing_error_2.ura', DuplicatedImportError, error_pos=86, error_line=4)
+        self.__test_fail('importing_error_2.ura', DuplicatedImportError, error_pos=86, error_line=5)
 
 
 if __name__ == '__main__':

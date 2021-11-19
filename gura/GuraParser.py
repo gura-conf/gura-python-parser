@@ -120,7 +120,7 @@ class GuraParser(Parser):
         """
         self.text = text
         self.pos = -1
-        self.line = 0
+        self.line = 1
         self.len = len(text) - 1
 
     def new_line(self):
