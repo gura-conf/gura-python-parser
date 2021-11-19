@@ -120,9 +120,13 @@ class TestExceptionReportGura(unittest.TestCase):
         """Tests error position and line when user uses a non defined variable inside an import statement"""
         self.__test_fail('missing_variable_error_6.ura', VariableNotDefinedError, error_pos=21, error_line=0)
 
-    # def test_line_and_pos_6(self):
-    #     """Tests error position and line when imported files are duplicated"""
-    #     self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=20, error_line=2)
+    def test_duplicated_import_1(self):
+        """Tests error position and line when imported files are duplicated"""
+        self.__test_fail('importing_error_1.ura', DuplicatedImportError, error_pos=74, error_line=1)
+        
+    def test_duplicated_import_2(self):
+        """Tests error position and line when imported files are duplicated but in other line than 0"""
+        self.__test_fail('importing_error_2.ura', DuplicatedImportError, error_pos=86, error_line=4)
 
 
 if __name__ == '__main__':

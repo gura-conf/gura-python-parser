@@ -264,12 +264,11 @@ class GuraParser(Parser):
                     file_to_import = os.path.join(origin_file_path, file_to_import)
 
                 # Files can be imported only once. This prevents circular reference
-                # TODO: check how to report well the position and line
                 if file_to_import in self.imported_files:
                     raise DuplicatedImportError(
-                        self.pos + 1,
+                        self.pos - len(file_to_import) - 1,  # -1 for the quotes (")
                         self.line,
-                        f'The file {file_to_import} has been already imported'
+                        f'The file "{file_to_import}" has been already imported'
                     )
 
                 with open(file_to_import, 'r') as f:
