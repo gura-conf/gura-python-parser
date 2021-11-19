@@ -1,5 +1,7 @@
 # Gura Python parser
 
+[![CI](https://github.com/gura-conf/gura-python-parser/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/gura-conf/gura-python-parser/actions/workflows/main.yml)
+
 This repository contains the implementation of a [Gura][gura] (compliant with version 1.0.0) format parser in Python.
 
 
