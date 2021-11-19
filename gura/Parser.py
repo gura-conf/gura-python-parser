@@ -36,7 +36,7 @@ class Parser:
             raise ParseError(
                 self.pos + 1,
                 self.line,
-                'Expected end of string but got %s',
+                'Expected end of string but got "%s"',
                 self.text[self.pos + 1]
             )
 
@@ -101,7 +101,7 @@ class Parser:
         raise ParseError(
             self.pos + 1,
             self.line,
-            'Expected [%s] but got %s' % (chars, next_char)
+            'Expected [%s] but got "%s"' % (chars, next_char)
         )
 
     def keyword(self, *keywords: str):
