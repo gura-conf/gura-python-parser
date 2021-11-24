@@ -45,7 +45,7 @@ class TestExceptionReportGura(unittest.TestCase):
         self.__test_fail('parsing_error_1.ura', ParseError, error_pos=0, error_line=1)
 
     def test_line_and_pos_2(self):
-        """Tests error position and line at end"""
+        """Tests error position and line at the end of file"""
         self.__test_fail('parsing_error_2.ura', ParseError, error_pos=10, error_line=1)
 
     def test_line_and_pos_3(self):

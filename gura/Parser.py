@@ -2,7 +2,7 @@ from typing import Optional, Any
 
 
 class GuraError(Exception):
-    """General Gura error, with position and line"""
+    """General Gura error, with position, line and a custom message"""
     def __init__(self, pos: int, line: int, msg: str, *args):
         self.pos = pos
         self.line = line
