@@ -14,6 +14,7 @@ class GuraError(Exception):
 
 
 class ParseError(GuraError):
+    """Raises when Gura syntax is invalid"""
     pass
 
 
