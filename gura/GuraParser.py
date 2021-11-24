@@ -710,7 +710,7 @@ class GuraParser(Parser):
 
         is_multiline = quote == '"""'
 
-        # NOTE: A newline immediately following the opening delimiter will be trimmed. All other whitespace and
+        # NOTE: a newline immediately following the opening delimiter will be trimmed. All other whitespace and
         # newline characters remain intact.
         if is_multiline:
             if self.maybe_char('\n') is not None:
@@ -761,7 +761,7 @@ class GuraParser(Parser):
 
         is_multiline = quote == "'''"
 
-        # NOTE:  A newline immediately following the opening delimiter will be trimmed. All other whitespace and
+        # NOTE: a newline immediately following the opening delimiter will be trimmed. All other whitespace and
         # newline characters remain intact.
         if is_multiline:
             if self.maybe_char('\n') is not None:
