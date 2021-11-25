@@ -10,7 +10,7 @@ class GuraError(Exception):
         self.args = args
 
     def __str__(self):
-        return '%s at line %s position %s' % (self.msg % self.args, self.line, self.pos)
+        return '%s at line %s (text position = %s)' % (self.msg % self.args, self.line, self.pos)
 
 
 class ParseError(GuraError):
@@ -34,11 +34,12 @@ class Parser:
         :raise: ParseError if EOL has not been reached
         """
         if self.pos < self.len:
+            error_pos = self.pos + 1
             raise ParseError(
-                self.pos + 1,
+                error_pos,
                 self.line,
                 'Expected end of string but got "%s"',
-                self.text[self.pos + 1]
+                self.text[error_pos]
             )
 
     def split_char_ranges(self, chars: str):
@@ -82,10 +83,11 @@ class Parser:
                 self.pos + 1,
                 self.line,
                 'Expected %s but got end of string',
-                'character' if chars is None else '[%s]' % chars
+                'next character' if chars is None else '[%s]' % chars
             )
 
-        next_char = self.text[self.pos + 1]
+        next_char_pos = self.pos + 1
+        next_char = self.text[next_char_pos]
         if chars is None:
             self.pos += 1
             return next_char
@@ -100,9 +102,9 @@ class Parser:
                 return next_char
 
         raise ParseError(
-            self.pos + 1,
+            next_char_pos,
             self.line,
-            'Expected [%s] but got "%s"' % (chars, next_char)
+            'Expected chars [%s] but got "%s"' % (chars, next_char)
         )
 
     def keyword(self, *keywords: str):
@@ -128,12 +130,13 @@ class Parser:
                 self.pos += len(keyword)
                 return keyword
 
+        error_pos = self.pos + 1
         raise ParseError(
-            self.pos + 1,
+            error_pos,
             self.line,
             'Expected "%s" but got "%s"',
             ', '.join(keywords),
-            self.text[self.pos],
+            self.text[error_pos],
         )
 
     def match(self, *rules: str):
@@ -150,11 +153,14 @@ class Parser:
 
         for rule in rules:
             initial_pos = self.pos
+            initial_line = self.line
+
             try:
                 result = getattr(self, rule)()
                 return result
             except ParseError as e:
                 self.pos = initial_pos
+                self.line = initial_line
 
                 if e.pos > last_error_pos:
                     last_exception = e

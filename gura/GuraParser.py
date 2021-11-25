@@ -125,9 +125,8 @@ class GuraParser(Parser):
 
     def new_line(self):
         """Matches with a new line"""
-        res = self.char('\f\v\r\n')
-        if res is not None:
-            self.line += 1
+        self.char('\f\v\r\n')
+        self.line += 1  # If this line is reached then new line matched
 
     def comment(self) -> MatchResult:
         """
@@ -495,11 +494,12 @@ class GuraParser(Parser):
         key = self.match('unquoted_string')
 
         if type(key) is not str:
+            error_pos = self.pos + 1
             raise ParseError(
-                self.pos + 1,
+                error_pos,
                 self.line,
                 'Expected string for key but got "%s"',
-                self.text[self.pos + 1]
+                self.text[error_pos]
             )
 
         self.keyword(':')
@@ -511,8 +511,7 @@ class GuraParser(Parser):
         :return: Matched key-value pair. None if the indentation level is lower than the last one (to indicate the
         ending of a parent object)
         """
-        pos_before_pair = self.pos
-        initial_pos = self.pos  # To report correct position in case of exception
+        pos_before_pair = self.pos  # To report correct position in case of exception
         current_indentation_level = self.maybe_match('ws_with_indentation')
 
         key = self.match('key')
@@ -524,7 +523,7 @@ class GuraParser(Parser):
         # Check if indentation is divisible by 4
         if current_indentation_level % 4 != 0:
             raise InvalidIndentationError(
-                initial_pos,
+                pos_before_pair,
                 self.line,
                 f'Indentation block ({current_indentation_level}) must be divisible by 4'
             )

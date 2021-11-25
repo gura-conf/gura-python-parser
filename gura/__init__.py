@@ -2,7 +2,7 @@ from gura.GuraParser import GuraParser, InvalidIndentationError, DuplicatedVaria
     VariableNotDefinedError, DuplicatedImportError, loads, dumps
 from gura.Parser import ParseError, GuraError
 
-__version__ = "1.4.3"
+__version__ = "1.4.4"
 
 loads = loads
 dumps = dumps
