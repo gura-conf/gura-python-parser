@@ -29,11 +29,13 @@ class TestExceptionReportGura(unittest.TestCase):
         """
         Test error position and line of a specific file
         :param filename: File path to check
+        :param exception: Expected exception type
         :param error_pos: Error position
         :param error_line: Error line
         """
         try:
             self.__get_file_parsed_data(filename)
+            self.fail(f'Expected to raise {exception}')
         except exception as e:
             self.assertEqual(e.pos, error_pos)
             self.assertEqual(e.line, error_line)
