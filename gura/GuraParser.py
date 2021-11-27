@@ -126,7 +126,7 @@ class GuraParser(Parser):
     def new_line(self):
         """Matches with a new line"""
         self.char('\f\v\r\n')
-        self.line += 1  # If this line is reached then new line matched
+        self.line += 1  # If this line is reached then new line matched as no exception was raised
 
     def comment(self) -> MatchResult:
         """
