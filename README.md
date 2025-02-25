@@ -7,7 +7,7 @@ This repository contains the implementation of a [Gura][gura] (compliant with ve
 
 ## Installation
 
-`pip install gura-parser`
+`pip install gura`
 
 
 ## Usage
@@ -48,10 +48,10 @@ print(gura.dumps(parsed_gura))
 
 ## Contributing
 
-All kind of contribution is welcome! If you want to contribute just:
+All kinds of contributions are welcome! If you want to contribute:
 
 1. Fork this repository.
-1. Create a new branch and introduce there your new changes.
+1. Create a new branch and introduce your new changes there.
 1. Make a Pull Request!
 
 Or you can join to our [community in Discord][discord-server]!
